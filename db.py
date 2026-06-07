@@ -77,8 +77,11 @@ class _PGConn:
 def get_conn():
     """Return an open DB connection (sqlite3 or _PGConn)."""
     if _USE_PG:
-        raw = psycopg2.connect(DATABASE_URL,
-                               cursor_factory=psycopg2.extras.RealDictCursor)
+        # Ensure sslmode=require for Supabase (append only if not already set)
+        url = DATABASE_URL
+        if "sslmode" not in url:
+            url += ("&" if "?" in url else "?") + "sslmode=require"
+        raw = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
         return _PGConn(raw)
     else:
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
