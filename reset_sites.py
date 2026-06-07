@@ -41,12 +41,16 @@ REAL_SITES = [
         "name": "Kyero Andorra",
         "base_url": "https://www.kyero.com/en/andorra/property-for-sale",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "403 — bloquea scrapers.",
     },
     {
         "id": "spainhouses-andorra",
         "name": "SpainHouses Andorra",
         "base_url": "https://www.spainhouses.net/en/buy-property-andorra.html",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "Redirige al homepage; no tiene sección Andorra.",
     },
     {
         "id": "nuroa-andorra",
@@ -65,11 +69,13 @@ REAL_SITES = [
         "name": "Trovit Andorra",
         "base_url": "https://casas.trovit.es/index.php/cod.search_homes/what.andorra/",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "401 — requiere login. Desactivado.",
     },
     {
         "id": "pisos-andorra",
         "name": "Pisos.com Andorra",
-        "base_url": "https://www.pisos.com/comprar/pisos-andorra/",
+        "base_url": "https://www.pisos.com/venta/pisos-andorra/",
         "scraper_type": "generic",
     },
     {
@@ -96,12 +102,16 @@ REAL_SITES = [
         "name": "Savills Andorra",
         "base_url": "https://www.savills.com/buy-property/andorra.aspx",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "404/503 — URL cambiada; página de resultados es JS puro.",
     },
     {
         "id": "sothebys-andorra",
         "name": "Sotheby's Andorra",
         "base_url": "https://www.sothebysrealty.com/eng/sales/andorra",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "202 — bot detection activo.",
     },
     {
         "id": "barnes-andorra",
