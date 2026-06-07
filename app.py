@@ -95,9 +95,10 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 }
 
 .sidebar-logo {
-    padding: 20px 16px 12px 16px;
+    padding: 24px 12px 16px 12px;
     border-bottom: 1px solid #2d3748;
     margin-bottom: 6px;
+    text-align: center;
 }
 
 /* KPI cards */
@@ -436,14 +437,14 @@ with st.sidebar:
         st.markdown(
             f'<div class="sidebar-logo">'
             f'<img src="data:image/png;base64,{b64}" alt="Logo" '
-            f'style="width:100%;max-height:54px;object-fit:contain;"/>'
+            f'style="width:88%;max-width:200px;object-fit:contain;display:block;margin:0 auto;"/>'
             f'</div>',
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
             '<div class="sidebar-logo">'
-            '<span style="color:#58a6ff;font-weight:700;font-size:12px;letter-spacing:.04em;">'
+            '<span style="color:#58a6ff;font-weight:700;font-size:13px;letter-spacing:.04em;">'
             "ANÀLISI IMMOBILIÀRIA D'ANDORRA</span></div>",
             unsafe_allow_html=True,
         )
