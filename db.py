@@ -401,16 +401,16 @@ def save_property(prop: Dict) -> bool:
 def get_properties(
     limit: int = 1000,
     site_id: Optional[str] = None,
-    zona: Optional[str] = None,
+    zona=None,          # str | List[str] | None
     search: Optional[str] = None,
-    portal: Optional[str] = None,
+    portal=None,        # str | List[str] | None
     precio_min: Optional[float] = None,
     precio_max: Optional[float] = None,
     metros_min: Optional[float] = None,
     metros_max: Optional[float] = None,
     hab_min: Optional[int] = None,
     banos_min: Optional[int] = None,
-    tipo: Optional[str] = None,
+    tipo=None,          # str | List[str] | None
     sort_by: str = "scraped_at",
     sort_asc: bool = False,
 ) -> List[Dict]:
@@ -418,14 +418,27 @@ def get_properties(
     sort_col = sort_by if sort_by in allowed_sort else "scraped_at"
     direction = "ASC" if sort_asc else "DESC"
 
+    def _norm(v):
+        """Normalise str/list/None → list or None."""
+        if v is None:
+            return None
+        vals = [v] if isinstance(v, str) else list(v)
+        return vals if vals else None
+
+    zona   = _norm(zona)
+    portal = _norm(portal)
+    tipo   = _norm(tipo)
+
     query = "SELECT * FROM properties WHERE 1=1"
     params: List = []
     if site_id:
-        query += " AND site_id=?";       params.append(site_id)
+        query += " AND site_id=?"; params.append(site_id)
     if zona:
-        query += " AND zona LIKE ?";     params.append(f"%{zona}%")
+        ph = ",".join(["?"] * len(zona))
+        query += f" AND zona IN ({ph})"; params.extend(zona)
     if portal:
-        query += " AND portal LIKE ?";   params.append(f"%{portal}%")
+        ph = ",".join(["?"] * len(portal))
+        query += f" AND portal IN ({ph})"; params.extend(portal)
     if search:
         query += " AND (titulo LIKE ? OR descripcion LIKE ? OR zona LIKE ?)"
         params += [f"%{search}%"] * 3
@@ -442,7 +455,8 @@ def get_properties(
     if banos_min is not None and banos_min > 0:
         query += " AND banos >= ?";      params.append(banos_min)
     if tipo:
-        query += " AND tipo_inmueble LIKE ?"; params.append(f"%{tipo}%")
+        ph = ",".join(["?"] * len(tipo))
+        query += f" AND tipo_inmueble IN ({ph})"; params.extend(tipo)
     query += f" ORDER BY {sort_col} {direction} LIMIT ?"
     params.append(limit)
 

@@ -739,15 +739,15 @@ def page_sitios():
     with col_a:
         search = st.text_input("", placeholder="Buscar nombre o URL…", label_visibility="collapsed")
     with col_b:
-        tipos = ["Todos"] + sorted({s.get("site_type", "—") for s in sites})
-        tipo_f = st.selectbox("", tipos, label_visibility="collapsed")
+        tipos = sorted({s.get("site_type", "—") for s in sites})
+        tipo_f = st.multiselect("", tipos, label_visibility="collapsed", placeholder="Todos los tipos")
     with col_c:
         solo_activos = st.checkbox("Solo activos")
 
     filtered = [
         s for s in sites
         if (not search or search.lower() in s["name"].lower() or search.lower() in s["base_url"].lower())
-        and (tipo_f == "Todos" or s.get("site_type") == tipo_f)
+        and (not tipo_f or s.get("site_type") in tipo_f)
         and (not solo_activos or s["enabled"])
     ]
 
@@ -872,17 +872,17 @@ def page_inmuebles():
             search = st.text_input("Búsqueda", placeholder="Título, zona, descripción…", label_visibility="visible")
         with row1[1]:
             portals = db.get_portal_distribution()
-            p_opts = ["Todos"] + [p["portal"] for p in portals]
-            portal_f = st.selectbox("Portal", p_opts)
+            p_opts = [p["portal"] for p in portals]
+            portal_f = st.multiselect("Portal", p_opts, placeholder="Todos")
         with row1[2]:
             zones = db.get_zone_distribution()
-            z_opts = ["Todas"] + [z["zona"] for z in zones if z["zona"]]
-            zona_f = st.selectbox("Zona", z_opts)
+            z_opts = [z["zona"] for z in zones if z["zona"]]
+            zona_f = st.multiselect("Zona", z_opts, placeholder="Todas")
         with row1[3]:
-            tipos_opts = ["Todos"]
+            tipos_opts = []
             if not all_df.empty and "tipo_inmueble" in all_df.columns:
-                tipos_opts += sorted(all_df["tipo_inmueble"].dropna().unique().tolist())
-            tipo_f = st.selectbox("Tipo", tipos_opts)
+                tipos_opts = sorted(all_df["tipo_inmueble"].dropna().unique().tolist())
+            tipo_f = st.multiselect("Tipo", tipos_opts, placeholder="Todos")
 
         row2 = st.columns([2, 2, 1, 1, 1])
         with row2[0]:
@@ -912,16 +912,16 @@ def page_inmuebles():
 
     props = db.get_properties(
         limit=limite,
-        zona=None if zona_f == "Todas" else zona_f,
+        zona=zona_f or None,
         search=search or None,
-        portal=None if portal_f == "Todos" else portal_f,
+        portal=portal_f or None,
         precio_min=float(precio_range[0]) if precio_range[0] > p_min_raw else None,
         precio_max=float(precio_range[1]) if precio_range[1] < p_max_raw else None,
         metros_min=float(metros_range[0]) if metros_range[0] > m_min_raw else None,
         metros_max=float(metros_range[1]) if metros_range[1] < m_max_raw else None,
         hab_min=int(hab_min) if hab_min > 0 else None,
         banos_min=int(ban_min) if ban_min > 0 else None,
-        tipo=None if tipo_f == "Todos" else tipo_f,
+        tipo=tipo_f or None,
     )
 
     if not props:
@@ -1579,19 +1579,19 @@ def page_exportar():
         c1, c2, c3 = st.columns(3)
         with c1:
             zones = db.get_zone_distribution()
-            z_opts = ["Todas"] + [z["zona"] for z in zones if z["zona"]]
-            zona_f = st.selectbox("Zona", z_opts)
+            z_opts = [z["zona"] for z in zones if z["zona"]]
+            zona_f = st.multiselect("Zona", z_opts, placeholder="Todas")
         with c2:
             portals = db.get_portal_distribution()
-            p_opts = ["Todos"] + [p["portal"] for p in portals]
-            portal_f = st.selectbox("Portal", p_opts)
+            p_opts = [p["portal"] for p in portals]
+            portal_f = st.multiselect("Portal", p_opts, placeholder="Todos")
         with c3:
             limite = st.slider("Máximo registros", 100, 10000, 5000, 100)
 
     props = db.get_properties(
         limit=limite,
-        zona=None if zona_f == "Todas" else zona_f,
-        portal=None if portal_f == "Todos" else portal_f,
+        zona=zona_f or None,
+        portal=portal_f or None,
     )
 
     if not props:
