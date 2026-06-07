@@ -33,6 +33,17 @@ if SITES_JSON.exists():
     db.load_sites_from_json(str(SITES_JSON))
 scheduler.start()  # background thread, idempotent
 
+# ─── Theme state ─────────────────────────────────────────────────────────────
+if "theme" not in st.session_state:
+    st.session_state["theme"] = "dark"
+_is_light = st.session_state["theme"] == "light"
+
+
+def _tc(dark_val: str, light_val: str) -> str:
+    """Return the right color for the current theme."""
+    return light_val if _is_light else dark_val
+
+
 # ─── CSS ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -467,6 +478,149 @@ footer    { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
+# ─── Light theme overrides ────────────────────────────────────────────────────
+if _is_light:
+    st.markdown("""
+<style>
+/* ══════════ LIGHT THEME ══════════ */
+.stApp { background-color: #f0f2f6 !important; }
+.main .block-container { background-color: #f0f2f6 !important; }
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background-color: #ffffff !important;
+    border-right: 2px solid #d0d7de !important;
+}
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="stSidebar"] button[data-testid="baseButton-header"] {
+    background-color: #f3f4f6 !important;
+    border-color: #d0d7de !important;
+    color: #24292f !important;
+}
+[data-testid="stSidebarCollapseButton"] svg,
+[data-testid="stSidebar"] button[data-testid="baseButton-header"] svg {
+    fill: #24292f !important; stroke: #24292f !important;
+}
+[data-testid="stSidebarCollapsedControl"] {
+    background-color: #ffffff !important;
+    border-right: 2px solid #d0d7de !important;
+}
+[data-testid="stSidebarCollapsedControl"] button { color: #24292f !important; }
+[data-testid="stSidebarCollapsedControl"] svg { fill: #24292f !important; }
+
+/* KPI cards */
+.kpi-card {
+    background: linear-gradient(145deg,#ffffff 0%,#f6f8fa 100%) !important;
+    border: 1px solid #d0d7de !important;
+}
+.kpi-card.blue:hover   { box-shadow:0 8px 32px rgba(9,105,218,.14)  !important; border-color:#a5c8fb !important; }
+.kpi-card.green:hover  { box-shadow:0 8px 32px rgba(26,127,55,.14)  !important; border-color:#9fd9a8 !important; }
+.kpi-card.purple:hover { box-shadow:0 8px 32px rgba(102,57,186,.14) !important; border-color:#cbbef8 !important; }
+.kpi-card.orange:hover { box-shadow:0 8px 32px rgba(188,76,0,.14)   !important; border-color:#f5b57e !important; }
+.kpi-card.blue::after   { background:radial-gradient(circle,rgba(9,105,218,.07) 0%,transparent 70%) !important; }
+.kpi-card.green::after  { background:radial-gradient(circle,rgba(26,127,55,.07) 0%,transparent 70%) !important; }
+.kpi-card.purple::after { background:radial-gradient(circle,rgba(102,57,186,.07) 0%,transparent 70%) !important; }
+.kpi-card.orange::after { background:radial-gradient(circle,rgba(188,76,0,.07) 0%,transparent 70%) !important; }
+.kpi-card.blue   .kpi-icon-bubble { background:rgba(9,105,218,.10) !important; }
+.kpi-card.green  .kpi-icon-bubble { background:rgba(26,127,55,.10) !important; }
+.kpi-card.purple .kpi-icon-bubble { background:rgba(102,57,186,.10) !important; }
+.kpi-card.orange .kpi-icon-bubble { background:rgba(188,76,0,.10) !important; }
+.kpi-label { color:#57606a !important; }
+.kpi-card.blue   .kpi-value { color:#0969da !important; }
+.kpi-card.green  .kpi-value { color:#1a7f37 !important; }
+.kpi-card.purple .kpi-value { color:#6639ba !important; }
+.kpi-card.orange .kpi-value { color:#bc4c00 !important; }
+.kpi-sub { color:#57606a !important; }
+.kpi-footer { border-top:1px solid #d0d7de !important; }
+.kpi-badge.up      { background:rgba(26,127,55,.12) !important;  color:#1a7f37 !important; }
+.kpi-badge.down    { background:rgba(207,34,46,.12) !important;  color:#cf222e !important; }
+.kpi-badge.neutral { background:rgba(87,96,106,.10) !important;  color:#57606a !important; }
+
+/* Typography */
+h1,h2 { color:#1c2128 !important; }
+h3    { color:#24292f !important; }
+p     { color:#57606a !important; }
+label, span { color:#57606a !important; }
+.section-title  { color:#57606a !important; }
+.section-header { border-bottom:1px solid #d0d7de !important; }
+.sidebar-logo   { border-bottom:1px solid #d0d7de !important; }
+
+/* Metric */
+[data-testid="metric-container"] { background-color:#ffffff !important; border:1px solid #d0d7de !important; }
+[data-testid="metric-container"] label { color:#57606a !important; }
+[data-testid="metric-container"] [data-testid="metric-value"] { color:#1c2128 !important; font-size:1.6rem !important; }
+
+/* All widget text */
+[data-testid="stMarkdown"] p,
+[data-testid="stMarkdown"] li,
+[data-testid="stMarkdown"] span,
+[data-testid="stCaption"],
+[data-testid="stText"]              { color:#57606a !important; }
+[data-testid="stWidgetLabel"] label,
+[data-testid="stWidgetLabel"] p     { color:#24292f !important; font-size:12px !important; }
+[data-testid="stExpander"] summary span,
+[data-testid="stExpander"] summary p { color:#24292f !important; }
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] p        { color:#24292f !important; }
+[data-testid="stSlider"] label,
+[data-testid="stSlider"] p          { color:#24292f !important; }
+[data-testid="stSelectbox"] label,
+[data-testid="stMultiSelect"] label { color:#24292f !important; }
+[data-testid="stTextInput"] label   { color:#24292f !important; }
+
+/* Inputs */
+input, textarea,
+[data-testid="stTextInput"] input,
+[data-testid="stTextInput"] > div > div,
+[data-baseweb="input"] > div,
+[data-baseweb="textarea"]           { background-color:#ffffff !important; border-color:#d0d7de !important; color:#24292f !important; }
+/* Selectbox */
+[data-testid="stSelectbox"] > div,
+[data-baseweb="select"] > div:first-child,
+[data-baseweb="popover"]            { background-color:#ffffff !important; border-color:#d0d7de !important; color:#24292f !important; }
+[data-baseweb="select"] svg         { fill:#57606a !important; }
+/* Multiselect */
+[data-testid="stMultiSelect"] [data-baseweb="select"] > div { background-color:#ffffff !important; border-color:#d0d7de !important; color:#24292f !important; }
+[data-testid="stMultiSelect"] [data-baseweb="tag"]          { background-color:#dbeafe !important; border:1px solid #93c5fd !important; color:#1d4ed8 !important; border-radius:4px !important; }
+[data-testid="stMultiSelect"] [data-baseweb="tag"] span     { color:#1d4ed8 !important; }
+[data-testid="stMultiSelect"] [role="option"],
+[data-baseweb="menu"]               { background-color:#ffffff !important; color:#24292f !important; }
+
+/* Expander */
+[data-testid="stExpander"]                { background-color:#ffffff !important; border:1px solid #d0d7de !important; }
+[data-testid="stExpander"] details        { background-color:#ffffff !important; }
+[data-testid="stExpander"] summary        { background-color:#ffffff !important; color:#57606a !important; }
+[data-testid="stExpander"] summary:hover  { color:#24292f !important; }
+[data-testid="stExpanderDetails"]         { background-color:#ffffff !important; border-top:1px solid #d0d7de !important; }
+
+/* Dataframe */
+[data-testid="stDataFrame"]     { border:1px solid #d0d7de !important; }
+[data-testid="stDataFrame"] th  { color:#24292f !important; }
+[data-testid="stDataFrame"] td  { color:#24292f !important; }
+
+/* Buttons */
+[data-testid="baseButton-secondary"] { background:#f6f8fa !important; border:1px solid #d0d7de !important; color:#24292f !important; }
+
+/* Dropdowns */
+[role="listbox"] li, [role="option"] { background-color:#ffffff !important; color:#24292f !important; }
+[role="option"]:hover                { background-color:#f0f4f8 !important; }
+
+/* Alert/info */
+[data-testid="stAlert"][kind="info"] { background-color:#dbeafe !important; border-color:#93c5fd !important; color:#1d4ed8 !important; }
+
+/* Toolbar */
+[data-testid="stToolbar"]         { background-color:#f0f2f6 !important; border-bottom:1px solid #d0d7de !important; }
+[data-testid="stToolbar"] button  { background:transparent !important; color:#24292f !important; border:1px solid #d0d7de !important; }
+[data-testid="stToolbar"] button:hover { background:#e8ecef !important; }
+[data-testid="stToolbar"] svg     { fill:#24292f !important; }
+
+/* Slider track */
+[data-testid="stSlider"] > div > div > div { background-color:#0969da !important; }
+[data-testid="stSlider"] [data-testid="stTickBar"] { color:#57606a !important; }
+</style>
+""", unsafe_allow_html=True)
+
+
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -486,25 +640,48 @@ def fmt_sqm(v) -> str:
 
 
 def plotly_theme(fig, title: str = ""):
+    if _is_light:
+        p_bg   = "#ffffff"
+        p_plot = "#f6f8fa"
+        f_col  = "#24292f"
+        t_col  = "#1c2128"
+        g_col  = "#e8ecef"
+        l_col  = "#d0d7de"
+        tk_col = "#57606a"
+        leg_bg = "#ffffff"
+        leg_bd = "#d0d7de"
+        colorway = ["#0969da","#1a7f37","#bc4c00","#6639ba","#cf222e","#0550ae"]
+    else:
+        p_bg   = "#161b27"
+        p_plot = "#161b27"
+        f_col  = "#c9d1d9"
+        t_col  = "#e6edf3"
+        g_col  = "#1a2035"
+        l_col  = "#2d333b"
+        tk_col = "#6e7b95"
+        leg_bg = "#1a2035"
+        leg_bd = "#2d333b"
+        colorway = ["#58a6ff","#3fb950","#f0883e","#bc8cff","#ff7b72","#79c0ff"]
+
     fig.update_layout(
         title=title,
-        paper_bgcolor="#161b27",
-        plot_bgcolor="#161b27",
-        font_color="#c9d1d9",
-        title_font_color="#e6edf3",
+        paper_bgcolor=p_bg,
+        plot_bgcolor=p_plot,
+        font_color=f_col,
+        title_font_color=t_col,
         title_font_size=13,
         title_font_family="Inter",
         margin=dict(l=16, r=16, t=44 if title else 20, b=16),
         legend=dict(
-            bgcolor="#1a2035",
-            bordercolor="#2d333b",
+            bgcolor=leg_bg,
+            bordercolor=leg_bd,
             borderwidth=1,
-            font_color="#8b949e",
+            font_color=tk_col,
             font_size=11,
         ),
-        colorway=["#58a6ff","#3fb950","#f0883e","#bc8cff","#ff7b72","#79c0ff"],
-        xaxis=dict(gridcolor="#1a2035", linecolor="#2d333b", tickfont_color="#6e7b95"),
-        yaxis=dict(gridcolor="#1a2035", linecolor="#2d333b", tickfont_color="#6e7b95"),
+        colorway=colorway,
+        xaxis=dict(gridcolor=g_col, linecolor=l_col, tickfont_color=tk_col),
+        yaxis=dict(gridcolor=g_col, linecolor=l_col, tickfont_color=tk_col),
     )
     return fig
 
@@ -559,11 +736,61 @@ with st.sidebar:
         )
     else:
         st.markdown(
-            '<div class="sidebar-logo">'
-            '<span style="color:#58a6ff;font-weight:700;font-size:13px;letter-spacing:.04em;">'
+            f'<div class="sidebar-logo">'
+            f'<span style="color:{_tc("#58a6ff","#0969da")};font-weight:700;font-size:13px;letter-spacing:.04em;">'
             "ANÀLISI IMMOBILIÀRIA D'ANDORRA</span></div>",
             unsafe_allow_html=True,
         )
+
+    # ── Theme toggle ──────────────────────────────────────────────────────────
+    _toggle_label = "☀️  Modo claro" if not _is_light else "🌙  Modo oscuro"
+    _toggle_bg    = _tc("#1a2035", "#f0f4f8")
+    _toggle_brd   = _tc("#2d3748", "#d0d7de")
+    _toggle_txt   = _tc("#c9d1d9", "#24292f")
+    st.markdown(
+        f'<div style="padding:6px 12px 2px 12px;">'
+        f'<div style="background:{_toggle_bg};border:1px solid {_toggle_brd};border-radius:8px;'
+        f'padding:4px 6px;display:flex;align-items:center;justify-content:center;">',
+        unsafe_allow_html=True,
+    )
+    if st.button(
+        _toggle_label,
+        key="theme_toggle",
+        use_container_width=True,
+        help="Cambiar entre modo oscuro y claro",
+    ):
+        st.session_state["theme"] = "light" if not _is_light else "dark"
+        st.rerun()
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+    # ── Navigation ────────────────────────────────────────────────────────────
+    _nav_styles = {
+        "container": {
+            "padding": "4px 0 12px 0",
+            "background-color": "transparent",
+        },
+        "icon": {
+            "color": _tc("#8b949e", "#57606a"),
+            "font-size": "14px",
+        },
+        "nav-link": {
+            "font-size": "13px",
+            "font-weight": "400",
+            "color": _tc("#c9d1d9", "#24292f"),
+            "background-color": "transparent",
+            "padding": "9px 14px",
+            "border-radius": "6px",
+            "margin": "1px 8px",
+            "--hover-color": _tc("#131826", "#f0f4f8"),
+        },
+        "nav-link-selected": {
+            "background-color": _tc("#0e1f3a", "#dbeafe"),
+            "color": _tc("#58a6ff", "#1d4ed8"),
+            "font-weight": "600",
+            "border-left": f'3px solid {_tc("#1f6feb","#2563eb")}',
+            "border-radius": "0 6px 6px 0",
+        },
+    }
 
     page = option_menu(
         menu_title=None,
@@ -573,50 +800,29 @@ with st.sidebar:
             "bar-chart-fill", "cloud-arrow-down-fill", "download", "gear-fill",
         ],
         default_index=0,
-        styles={
-            "container": {
-                "padding": "4px 0 12px 0",
-                "background-color": "transparent",
-            },
-            "icon": {
-                "color": "#8b949e",
-                "font-size": "14px",
-            },
-            "nav-link": {
-                "font-size": "13px",
-                "font-weight": "400",
-                "color": "#c9d1d9",
-                "background-color": "transparent",
-                "padding": "9px 14px",
-                "border-radius": "6px",
-                "margin": "1px 8px",
-                "--hover-color": "#131826",
-            },
-            "nav-link-selected": {
-                "background-color": "#0e1f3a",
-                "color": "#58a6ff",
-                "font-weight": "600",
-                "border-left": "3px solid #1f6feb",
-                "border-radius": "0 6px 6px 0",
-            },
-        },
+        styles=_nav_styles,
     )
 
-    # Bottom stats pill
+    # ── Bottom stats pill ─────────────────────────────────────────────────────
     total_props = db.get_total_properties()
     n_sites = len(db.get_enabled_sites())
+    _pill_bg   = _tc("#0d1117", "#f0f4f8")
+    _pill_brd  = _tc("#2d3748", "#d0d7de")
+    _pill_lbl  = _tc("#c9d1d9", "#57606a")
+    _pill_blue = _tc("#58a6ff", "#0969da")
+    _pill_grn  = _tc("#3fb950", "#1a7f37")
     st.markdown(
         f'<div style="margin:16px 12px 0 12px;">'
-        f'<div style="background:#0d1117;border:1px solid #2d3748;border-radius:8px;padding:12px 14px;">'
-        f'<div style="font-size:10px;color:#c9d1d9;font-weight:600;text-transform:uppercase;'
+        f'<div style="background:{_pill_bg};border:1px solid {_pill_brd};border-radius:8px;padding:12px 14px;">'
+        f'<div style="font-size:10px;color:{_pill_lbl};font-weight:600;text-transform:uppercase;'
         f'letter-spacing:.07em;margin-bottom:8px;">Sistema</div>'
         f'<div style="display:flex;justify-content:space-between;margin-bottom:5px;">'
-        f'<span style="font-size:12px;color:#c9d1d9;">Inmuebles</span>'
-        f'<span style="font-size:12px;color:#58a6ff;font-weight:600;">{total_props:,}</span>'
+        f'<span style="font-size:12px;color:{_pill_lbl};">Inmuebles</span>'
+        f'<span style="font-size:12px;color:{_pill_blue};font-weight:600;">{total_props:,}</span>'
         f'</div>'
         f'<div style="display:flex;justify-content:space-between;">'
-        f'<span style="font-size:12px;color:#c9d1d9;">Sitios activos</span>'
-        f'<span style="font-size:12px;color:#3fb950;font-weight:600;">{n_sites}</span>'
+        f'<span style="font-size:12px;color:{_pill_lbl};">Sitios activos</span>'
+        f'<span style="font-size:12px;color:{_pill_grn};font-weight:600;">{n_sites}</span>'
         f'</div>'
         f'</div></div>',
         unsafe_allow_html=True,
@@ -714,8 +920,8 @@ def page_dashboard():
             fig.update_traces(
                 textposition="outside",
                 textfont_size=10,
-                textfont_color="#8b949e",
-                marker=dict(line=dict(color="#0d1117", width=2)),
+                textfont_color=_tc("#8b949e", "#57606a"),
+                marker=dict(line=dict(color=_tc("#0d1117", "#f0f2f6"), width=2)),
             )
             plotly_theme(fig)
             fig.update_layout(
@@ -769,10 +975,13 @@ def page_dashboard():
 
 
 def _empty_chart(msg: str, h: int = 160):
+    bg  = _tc("#161b27", "#ffffff")
+    brd = _tc("#21273a", "#d0d7de")
+    txt = _tc("#8b949e", "#57606a")
     st.markdown(
         f"<div style='height:{h}px;display:flex;align-items:center;"
-        f"justify-content:center;background:#161b27;border-radius:10px;"
-        f"border:1px dashed #21273a;color:#8b949e;font-size:13px;'>{msg}</div>",
+        f"justify-content:center;background:{bg};border-radius:10px;"
+        f"border:1px dashed {brd};color:{txt};font-size:13px;'>{msg}</div>",
         unsafe_allow_html=True,
     )
 
@@ -1159,12 +1368,16 @@ def page_inmuebles():
 
     stat_cols = st.columns(4)
     def _mini_stat(col, label, value):
+        _bg  = _tc("#0e1525", "#ffffff")
+        _brd = _tc("#1a2035", "#d0d7de")
+        _lbl = _tc("#c9d1d9", "#57606a")
+        _val = _tc("#e6edf3", "#1c2128")
         col.markdown(
-            f'<div style="background:#0e1525;border:1px solid #1a2035;border-radius:8px;'
+            f'<div style="background:{_bg};border:1px solid {_brd};border-radius:8px;'
             f'padding:10px 14px;text-align:center;">'
-            f'<div style="font-size:10px;color:#c9d1d9;text-transform:uppercase;'
+            f'<div style="font-size:10px;color:{_lbl};text-transform:uppercase;'
             f'letter-spacing:.07em;margin-bottom:4px;">{label}</div>'
-            f'<div style="font-size:1.15rem;font-weight:700;color:#e6edf3;">{value}</div>'
+            f'<div style="font-size:1.15rem;font-weight:700;color:{_val};">{value}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1380,7 +1593,7 @@ def page_analisis():
                 marker_line_width=0,
                 text=df_z["label"],
                 textposition="outside",
-                textfont=dict(color="#c9d1d9", size=12),
+                textfont=dict(color=_tc("#c9d1d9", "#24292f"), size=12),
                 hovertemplate=(
                     "<b>%{y}</b><br>"
                     "Precio medio: %{text}<br>"
@@ -1408,8 +1621,8 @@ def page_analisis():
             cheapest = df_z.iloc[0]
             dearest  = df_z.iloc[-1]
             st.markdown(
-                f"<div style='background:#0e1525;border-left:3px solid #1f6feb;"
-                f"padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#c9d1d9;margin-top:4px;'>"
+                f"<div style='background:{_tc('#0e1525','#dbeafe')};border-left:3px solid {_tc('#1f6feb','#2563eb')};"
+                f"padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:{_tc('#c9d1d9','#24292f')};margin-top:4px;'>"
                 f"💡 La zona más asequible es <b>{cheapest['zona']}</b> "
                 f"({int(cheapest['avg_precio']):,} € de media). "
                 f"La más cara es <b>{dearest['zona']}</b> "
@@ -1509,8 +1722,8 @@ def page_analisis():
             )
             fig.update_traces(
                 textposition="outside",
-                textfont=dict(size=11, color="#c9d1d9"),
-                marker=dict(line=dict(color="#0d1117", width=2)),
+                textfont=dict(size=11, color=_tc("#c9d1d9", "#24292f")),
+                marker=dict(line=dict(color=_tc("#0d1117", "#f0f2f6"), width=2)),
             )
             plotly_theme(fig)
             fig.update_layout(
@@ -1520,7 +1733,7 @@ def page_analisis():
                 annotations=[dict(
                     text=f"<b>{df_t['count'].sum()}</b><br><span style='font-size:11px'>pisos</span>",
                     x=0.5, y=0.5, font_size=16,
-                    font_color="#e6edf3",
+                    font_color=_tc("#e6edf3", "#1c2128"),
                     showarrow=False,
                 )],
             )
@@ -1580,7 +1793,7 @@ def page_analisis():
                     marker_line_width=0,
                     text=score_counts["n"],
                     textposition="outside",
-                    textfont=dict(color="#c9d1d9", size=13),
+                    textfont=dict(color=_tc("#c9d1d9", "#24292f"), size=13),
                     hovertemplate="<b>%{y}</b><br>%{x} pisos<extra></extra>",
                 ))
                 plotly_theme(fig)
@@ -1734,21 +1947,27 @@ def page_scraping():
             new   = result["total_new"]
             errs  = result["errors"]
 
+            _rb  = _tc("#0a1f10", "#f0fdf4")
+            _rbd = _tc("#1a4c28", "#86efac")
+            _rl  = _tc("#c9d1d9", "#57606a")
+            _rv  = _tc("#e6edf3", "#1c2128")
+            _rbl = _tc("#58a6ff", "#0969da")
+            _rgr = _tc("#3fb950", "#1a7f37")
             st.markdown(
-                f'<div style="background:#0a1f10;border:1px solid #1a4c28;border-radius:10px;'
+                f'<div style="background:{_rb};border:1px solid {_rbd};border-radius:10px;'
                 f'padding:18px 22px;margin-top:12px;">'
-                f'<div style="font-size:13px;font-weight:700;color:#3fb950;margin-bottom:10px;">'
+                f'<div style="font-size:13px;font-weight:700;color:{_rgr};margin-bottom:10px;">'
                 f'✓ Completado</div>'
                 f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">'
-                f'<div><div style="font-size:10px;color:#c9d1d9;text-transform:uppercase;'
+                f'<div><div style="font-size:10px;color:{_rl};text-transform:uppercase;'
                 f'letter-spacing:.07em;margin-bottom:4px;">Sitios</div>'
-                f'<div style="font-size:1.4rem;font-weight:700;color:#e6edf3;">{result["sites_scraped"]}</div></div>'
-                f'<div><div style="font-size:10px;color:#c9d1d9;text-transform:uppercase;'
+                f'<div style="font-size:1.4rem;font-weight:700;color:{_rv};">{result["sites_scraped"]}</div></div>'
+                f'<div><div style="font-size:10px;color:{_rl};text-transform:uppercase;'
                 f'letter-spacing:.07em;margin-bottom:4px;">Encontrados</div>'
-                f'<div style="font-size:1.4rem;font-weight:700;color:#58a6ff;">{found:,}</div></div>'
-                f'<div><div style="font-size:10px;color:#c9d1d9;text-transform:uppercase;'
+                f'<div style="font-size:1.4rem;font-weight:700;color:{_rbl};">{found:,}</div></div>'
+                f'<div><div style="font-size:10px;color:{_rl};text-transform:uppercase;'
                 f'letter-spacing:.07em;margin-bottom:4px;">Nuevos</div>'
-                f'<div style="font-size:1.4rem;font-weight:700;color:#3fb950;">{new:,}</div></div>'
+                f'<div style="font-size:1.4rem;font-weight:700;color:{_rgr};">{new:,}</div></div>'
                 f'</div></div>',
                 unsafe_allow_html=True,
             )
@@ -1884,22 +2103,28 @@ def page_ajustes():
 
     nxt_fmt = nxt.strftime("%d/%m/%Y %H:%M") if nxt else "—  (modo manual)"
 
+    _sc_bg  = _tc("#161b27", "#ffffff")
+    _sc_brd = _tc("#21273a", "#d0d7de")
+    _sc_lbl = _tc("#8b949e", "#57606a")
+    _sc_val = _tc("#e6edf3", "#1c2128")
+    _sc_blu = _tc("#58a6ff", "#0969da")
+    _sc_txt = _tc("#c9d1d9", "#24292f")
     st.markdown(
-        f'<div style="background:#161b27;border:1px solid #21273a;border-radius:12px;'
+        f'<div style="background:{_sc_bg};border:1px solid {_sc_brd};border-radius:12px;'
         f'padding:20px 24px;margin-bottom:20px;display:grid;'
         f'grid-template-columns:repeat(4,1fr);gap:16px;">'
-        f'<div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;'
+        f'<div><div style="font-size:10px;color:{_sc_lbl};text-transform:uppercase;'
         f'letter-spacing:.07em;margin-bottom:4px;">Estado</div>'
         f'<div style="font-size:1.1rem;font-weight:700;color:{status_color};">{status_label}</div></div>'
-        f'<div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;'
+        f'<div><div style="font-size:10px;color:{_sc_lbl};text-transform:uppercase;'
         f'letter-spacing:.07em;margin-bottom:4px;">Último scraping</div>'
-        f'<div style="font-size:0.9rem;font-weight:600;color:#e6edf3;">{last_run_fmt or "Nunca"}</div></div>'
-        f'<div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;'
+        f'<div style="font-size:0.9rem;font-weight:600;color:{_sc_val};">{last_run_fmt or "Nunca"}</div></div>'
+        f'<div><div style="font-size:10px;color:{_sc_lbl};text-transform:uppercase;'
         f'letter-spacing:.07em;margin-bottom:4px;">Próxima ejecución</div>'
-        f'<div style="font-size:0.9rem;font-weight:600;color:#58a6ff;">{nxt_fmt}</div></div>'
-        f'<div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;'
+        f'<div style="font-size:0.9rem;font-weight:600;color:{_sc_blu};">{nxt_fmt}</div></div>'
+        f'<div><div style="font-size:10px;color:{_sc_lbl};text-transform:uppercase;'
         f'letter-spacing:.07em;margin-bottom:4px;">Resultado</div>'
-        f'<div style="font-size:0.75rem;color:#c9d1d9;">{last_result[:80]}</div></div>'
+        f'<div style="font-size:0.75rem;color:{_sc_txt};">{last_result[:80]}</div></div>'
         f'</div>',
         unsafe_allow_html=True,
     )
