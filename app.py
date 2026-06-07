@@ -33,15 +33,11 @@ if SITES_JSON.exists():
     db.load_sites_from_json(str(SITES_JSON))
 scheduler.start()  # background thread, idempotent
 
-# ─── Theme state ─────────────────────────────────────────────────────────────
-if "theme" not in st.session_state:
-    st.session_state["theme"] = "dark"
-_is_light = st.session_state["theme"] == "light"
+_is_light = False  # dark mode only
 
 
 def _tc(dark_val: str, light_val: str) -> str:
-    """Return the right color for the current theme."""
-    return light_val if _is_light else dark_val
+    return dark_val
 
 
 # ─── CSS ─────────────────────────────────────────────────────────────────────
@@ -478,147 +474,6 @@ footer    { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Light theme overrides ────────────────────────────────────────────────────
-if _is_light:
-    st.markdown("""
-<style>
-/* ══════════ LIGHT THEME ══════════ */
-.stApp { background-color: #f0f2f6 !important; }
-.main .block-container { background-color: #f0f2f6 !important; }
-
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background-color: #ffffff !important;
-    border-right: 2px solid #d0d7de !important;
-}
-[data-testid="stSidebarCollapseButton"] button,
-[data-testid="stSidebar"] button[data-testid="baseButton-header"] {
-    background-color: #f3f4f6 !important;
-    border-color: #d0d7de !important;
-    color: #24292f !important;
-}
-[data-testid="stSidebarCollapseButton"] svg,
-[data-testid="stSidebar"] button[data-testid="baseButton-header"] svg {
-    fill: #24292f !important; stroke: #24292f !important;
-}
-[data-testid="stSidebarCollapsedControl"] {
-    background-color: #ffffff !important;
-    border-right: 2px solid #d0d7de !important;
-}
-[data-testid="stSidebarCollapsedControl"] button { color: #24292f !important; }
-[data-testid="stSidebarCollapsedControl"] svg { fill: #24292f !important; }
-
-/* KPI cards */
-.kpi-card {
-    background: linear-gradient(145deg,#ffffff 0%,#f6f8fa 100%) !important;
-    border: 1px solid #d0d7de !important;
-}
-.kpi-card.blue:hover   { box-shadow:0 8px 32px rgba(9,105,218,.14)  !important; border-color:#a5c8fb !important; }
-.kpi-card.green:hover  { box-shadow:0 8px 32px rgba(26,127,55,.14)  !important; border-color:#9fd9a8 !important; }
-.kpi-card.purple:hover { box-shadow:0 8px 32px rgba(102,57,186,.14) !important; border-color:#cbbef8 !important; }
-.kpi-card.orange:hover { box-shadow:0 8px 32px rgba(188,76,0,.14)   !important; border-color:#f5b57e !important; }
-.kpi-card.blue::after   { background:radial-gradient(circle,rgba(9,105,218,.07) 0%,transparent 70%) !important; }
-.kpi-card.green::after  { background:radial-gradient(circle,rgba(26,127,55,.07) 0%,transparent 70%) !important; }
-.kpi-card.purple::after { background:radial-gradient(circle,rgba(102,57,186,.07) 0%,transparent 70%) !important; }
-.kpi-card.orange::after { background:radial-gradient(circle,rgba(188,76,0,.07) 0%,transparent 70%) !important; }
-.kpi-card.blue   .kpi-icon-bubble { background:rgba(9,105,218,.10) !important; }
-.kpi-card.green  .kpi-icon-bubble { background:rgba(26,127,55,.10) !important; }
-.kpi-card.purple .kpi-icon-bubble { background:rgba(102,57,186,.10) !important; }
-.kpi-card.orange .kpi-icon-bubble { background:rgba(188,76,0,.10) !important; }
-.kpi-label { color:#57606a !important; }
-.kpi-card.blue   .kpi-value { color:#0969da !important; }
-.kpi-card.green  .kpi-value { color:#1a7f37 !important; }
-.kpi-card.purple .kpi-value { color:#6639ba !important; }
-.kpi-card.orange .kpi-value { color:#bc4c00 !important; }
-.kpi-sub { color:#57606a !important; }
-.kpi-footer { border-top:1px solid #d0d7de !important; }
-.kpi-badge.up      { background:rgba(26,127,55,.12) !important;  color:#1a7f37 !important; }
-.kpi-badge.down    { background:rgba(207,34,46,.12) !important;  color:#cf222e !important; }
-.kpi-badge.neutral { background:rgba(87,96,106,.10) !important;  color:#57606a !important; }
-
-/* Typography */
-h1,h2 { color:#1c2128 !important; }
-h3    { color:#24292f !important; }
-p     { color:#57606a !important; }
-label, span { color:#57606a !important; }
-.section-title  { color:#57606a !important; }
-.section-header { border-bottom:1px solid #d0d7de !important; }
-.sidebar-logo   { border-bottom:1px solid #d0d7de !important; }
-
-/* Metric */
-[data-testid="metric-container"] { background-color:#ffffff !important; border:1px solid #d0d7de !important; }
-[data-testid="metric-container"] label { color:#57606a !important; }
-[data-testid="metric-container"] [data-testid="metric-value"] { color:#1c2128 !important; font-size:1.6rem !important; }
-
-/* All widget text */
-[data-testid="stMarkdown"] p,
-[data-testid="stMarkdown"] li,
-[data-testid="stMarkdown"] span,
-[data-testid="stCaption"],
-[data-testid="stText"]              { color:#57606a !important; }
-[data-testid="stWidgetLabel"] label,
-[data-testid="stWidgetLabel"] p     { color:#24292f !important; font-size:12px !important; }
-[data-testid="stExpander"] summary span,
-[data-testid="stExpander"] summary p { color:#24292f !important; }
-[data-testid="stCheckbox"] label,
-[data-testid="stCheckbox"] p        { color:#24292f !important; }
-[data-testid="stSlider"] label,
-[data-testid="stSlider"] p          { color:#24292f !important; }
-[data-testid="stSelectbox"] label,
-[data-testid="stMultiSelect"] label { color:#24292f !important; }
-[data-testid="stTextInput"] label   { color:#24292f !important; }
-
-/* Inputs */
-input, textarea,
-[data-testid="stTextInput"] input,
-[data-testid="stTextInput"] > div > div,
-[data-baseweb="input"] > div,
-[data-baseweb="textarea"]           { background-color:#ffffff !important; border-color:#d0d7de !important; color:#24292f !important; }
-/* Selectbox */
-[data-testid="stSelectbox"] > div,
-[data-baseweb="select"] > div:first-child,
-[data-baseweb="popover"]            { background-color:#ffffff !important; border-color:#d0d7de !important; color:#24292f !important; }
-[data-baseweb="select"] svg         { fill:#57606a !important; }
-/* Multiselect */
-[data-testid="stMultiSelect"] [data-baseweb="select"] > div { background-color:#ffffff !important; border-color:#d0d7de !important; color:#24292f !important; }
-[data-testid="stMultiSelect"] [data-baseweb="tag"]          { background-color:#dbeafe !important; border:1px solid #93c5fd !important; color:#1d4ed8 !important; border-radius:4px !important; }
-[data-testid="stMultiSelect"] [data-baseweb="tag"] span     { color:#1d4ed8 !important; }
-[data-testid="stMultiSelect"] [role="option"],
-[data-baseweb="menu"]               { background-color:#ffffff !important; color:#24292f !important; }
-
-/* Expander */
-[data-testid="stExpander"]                { background-color:#ffffff !important; border:1px solid #d0d7de !important; }
-[data-testid="stExpander"] details        { background-color:#ffffff !important; }
-[data-testid="stExpander"] summary        { background-color:#ffffff !important; color:#57606a !important; }
-[data-testid="stExpander"] summary:hover  { color:#24292f !important; }
-[data-testid="stExpanderDetails"]         { background-color:#ffffff !important; border-top:1px solid #d0d7de !important; }
-
-/* Dataframe */
-[data-testid="stDataFrame"]     { border:1px solid #d0d7de !important; }
-[data-testid="stDataFrame"] th  { color:#24292f !important; }
-[data-testid="stDataFrame"] td  { color:#24292f !important; }
-
-/* Buttons */
-[data-testid="baseButton-secondary"] { background:#f6f8fa !important; border:1px solid #d0d7de !important; color:#24292f !important; }
-
-/* Dropdowns */
-[role="listbox"] li, [role="option"] { background-color:#ffffff !important; color:#24292f !important; }
-[role="option"]:hover                { background-color:#f0f4f8 !important; }
-
-/* Alert/info */
-[data-testid="stAlert"][kind="info"] { background-color:#dbeafe !important; border-color:#93c5fd !important; color:#1d4ed8 !important; }
-
-/* Toolbar */
-[data-testid="stToolbar"]         { background-color:#f0f2f6 !important; border-bottom:1px solid #d0d7de !important; }
-[data-testid="stToolbar"] button  { background:transparent !important; color:#24292f !important; border:1px solid #d0d7de !important; }
-[data-testid="stToolbar"] button:hover { background:#e8ecef !important; }
-[data-testid="stToolbar"] svg     { fill:#24292f !important; }
-
-/* Slider track */
-[data-testid="stSlider"] > div > div > div { background-color:#0969da !important; }
-[data-testid="stSlider"] [data-testid="stTickBar"] { color:#57606a !important; }
-</style>
-""", unsafe_allow_html=True)
 
 
 
@@ -741,27 +596,6 @@ with st.sidebar:
             "ANÀLISI IMMOBILIÀRIA D'ANDORRA</span></div>",
             unsafe_allow_html=True,
         )
-
-    # ── Theme toggle ──────────────────────────────────────────────────────────
-    _toggle_label = "☀️  Modo claro" if not _is_light else "🌙  Modo oscuro"
-    _toggle_bg    = _tc("#1a2035", "#f0f4f8")
-    _toggle_brd   = _tc("#2d3748", "#d0d7de")
-    _toggle_txt   = _tc("#c9d1d9", "#24292f")
-    st.markdown(
-        f'<div style="padding:6px 12px 2px 12px;">'
-        f'<div style="background:{_toggle_bg};border:1px solid {_toggle_brd};border-radius:8px;'
-        f'padding:4px 6px;display:flex;align-items:center;justify-content:center;">',
-        unsafe_allow_html=True,
-    )
-    if st.button(
-        _toggle_label,
-        key="theme_toggle",
-        use_container_width=True,
-        help="Cambiar entre modo oscuro y claro",
-    ):
-        st.session_state["theme"] = "light" if not _is_light else "dark"
-        st.rerun()
-    st.markdown("</div></div>", unsafe_allow_html=True)
 
     # ── Navigation ────────────────────────────────────────────────────────────
     _nav_styles = {
@@ -1115,8 +949,8 @@ def page_sitios():
         unsafe_allow_html=True,
     )
 
-    cols_hdr = st.columns([3, 4, 1, 1, 1, 2])
-    for col, h in zip(cols_hdr, ["Nombre", "URL de búsqueda", "Act.", "Scraper", "Editar", "Últ. scraping"]):
+    cols_hdr = st.columns([3, 4, 1, 1, 1, 1, 2])
+    for col, h in zip(cols_hdr, ["Nombre", "URL de búsqueda", "Act.", "Scraper", "Editar", "Borrar", "Últ. scraping"]):
         col.markdown(
             f"<span style='font-size:10px;color:#c9d1d9;font-weight:600;"
             f"text-transform:uppercase;letter-spacing:.07em;'>{h}</span>",
@@ -1126,7 +960,7 @@ def page_sitios():
                 unsafe_allow_html=True)
 
     for s in filtered:
-        c = st.columns([3, 4, 1, 1, 1, 2])
+        c = st.columns([3, 4, 1, 1, 1, 1, 2])
         c[0].markdown(
             f"<span style='color:#c9d1d9;font-size:13px;font-weight:500;'>{s['name']}</span>",
             unsafe_allow_html=True,
@@ -1147,9 +981,14 @@ def page_sitios():
             unsafe_allow_html=True,
         )
 
-        edit_key = f"edit_{s['id']}"
-        if c[4].button("✏️", key=f"btn_{s['id']}", help="Editar URL y nombre"):
+        edit_key    = f"edit_{s['id']}"
+        confirm_key = f"confirm_del_{s['id']}"
+
+        if c[4].button("✏️", key=f"btn_{s['id']}", help="Editar"):
             st.session_state[edit_key] = True
+
+        if c[5].button("🗑️", key=f"del_{s['id']}", help="Eliminar sitio"):
+            st.session_state[confirm_key] = True
 
         last = s.get("last_scraped") or "Nunca"
         if last != "Nunca":
@@ -1157,10 +996,32 @@ def page_sitios():
                 last = datetime.fromisoformat(last).strftime("%d/%m %H:%M")
             except Exception:
                 pass
-        c[5].markdown(
+        c[6].markdown(
             f"<span style='font-size:11px;color:#c9d1d9;'>{last}</span>",
             unsafe_allow_html=True,
         )
+
+        # Delete confirmation inline
+        if st.session_state.get(confirm_key):
+            st.markdown(
+                f"<div style='background:#2d1215;border:1px solid #6b2b2b;border-radius:8px;"
+                f"padding:12px 16px;margin:2px 0 8px 0;display:flex;align-items:center;gap:16px;'>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"<span style='color:#f85149;font-size:12px;'>⚠️ ¿Eliminar <b>{s['name']}</b> definitivamente?</span>",
+                unsafe_allow_html=True,
+            )
+            d1, d2, _ = st.columns([1, 1, 5])
+            if d1.button("✓ Sí, borrar", key=f"do_del_{s['id']}", type="primary"):
+                db.delete_site(s["id"])
+                st.session_state.pop(confirm_key, None)
+                st.success(f"'{s['name']}' eliminado.")
+                st.rerun()
+            if d2.button("✕ Cancelar", key=f"no_del_{s['id']}"):
+                st.session_state.pop(confirm_key, None)
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
         # Inline edit panel
         if st.session_state.get(edit_key):

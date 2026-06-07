@@ -853,6 +853,52 @@ def _scrape_jsonld(html: str, site: Dict) -> List[Dict]:
 
 # ─── Buscocasa.ad scraper ────────────────────────────────────────────────────
 
+def _buscocasa_relative_date(text: str) -> Optional[str]:
+    """Convert BuscoCasa Catalan relative dates to ISO date strings.
+
+    Handles both absolute 'DD/MM/YYYY' and relative 'MODIFICAT: + DE X MES/DIES' patterns.
+    Returns ISO date string or None.
+    """
+    from datetime import datetime as _dt, timedelta
+
+    # Absolute date first: DD/MM/YYYY (already handled by caller, but keep as fallback)
+    m = re.search(r"(\d{2})/(\d{2})/(\d{4})", text)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+
+    t = text.lower()
+    today = _dt.now().date()
+
+    # "avui" → today
+    if "avui" in t:
+        return str(today)
+    # "ahir" → yesterday
+    if "ahir" in t:
+        return str(today - timedelta(days=1))
+
+    # "+ de X dies/setmana(es)/mes(os)/any(s)"
+    m_dies = re.search(r"(\d+)\s*dies?", t)
+    if m_dies:
+        return str(today - timedelta(days=int(m_dies.group(1))))
+
+    m_set = re.search(r"(\d+)\s*setmanes?", t)
+    if m_set:
+        return str(today - timedelta(weeks=int(m_set.group(1))))
+
+    # "+ de 1 mes" style — no precise number, approximate with 35 days
+    m_mes = re.search(r"(\d+)\s*mes(?:os)?", t)
+    if m_mes:
+        return str(today - timedelta(days=int(m_mes.group(1)) * 31))
+    if "mes" in t:
+        return str(today - timedelta(days=35))
+
+    m_any = re.search(r"(\d+)\s*anys?", t)
+    if m_any:
+        return str(today - timedelta(days=int(m_any.group(1)) * 365))
+
+    return None
+
+
 _ANDORRA_ZONES = {
     "andorra-la-vella": "Andorra la Vella", "andorra-vella": "Andorra la Vella",
     "escaldes": "Escaldes-Engordany", "escaldes-engordany": "Escaldes-Engordany",
@@ -925,14 +971,16 @@ def _scrape_buscocasa(html: str, site: Dict) -> List[Dict]:
         has_parking = 1 if any(w in text_low for w in ("parking", "aparcament", "garatge", "garaje")) else None
         has_terraza = 1 if any(w in text_low for w in ("terrassa", "terraza", "jardí", "jardín", "balcó", "balcón")) else None
 
-        # Date: ".box-footer .uk-float-right" text is "DD/MM/YYYYNNN VISITES"
+        # Date: footer-right shows "DD/MM/YYYY NNN VISITES" or "MODIFICAT: + DE X MES/DIES"
         footer_right = panel.select_one(".box-footer .uk-float-right")
         fecha = None
         if footer_right:
-            date_text = footer_right.get_text(strip=True)
-            m_date = re.search(r"(\d{2})/(\d{2})/(\d{4})", date_text)
-            if m_date:
-                fecha = f"{m_date.group(3)}-{m_date.group(2)}-{m_date.group(1)}"
+            fecha = _buscocasa_relative_date(footer_right.get_text(strip=True))
+        # Fallback: check full card text for any MODIFICAT pattern
+        if not fecha:
+            card_text = panel.get_text(" ", strip=True)
+            if "modificat" in card_text.lower():
+                fecha = _buscocasa_relative_date(card_text)
 
         # Property type from footer
         footer_left = panel.select_one(".box-footer .uk-float-left")
