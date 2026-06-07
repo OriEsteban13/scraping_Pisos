@@ -981,22 +981,26 @@ def page_inmuebles():
 
         row3 = st.columns([1, 2, 1, 2])
         with row3[0]:
-            pub_years_f = st.multiselect("Año publicación", pub_years_opts, placeholder="Todos")
+            scr_years_f = st.multiselect("Año scraped", scr_years_opts, placeholder="Todos",
+                                         help="Año en que fue descubierto por el scraper (disponible para todos los portales)")
         with row3[1]:
-            pub_months_f = st.multiselect(
-                "Mes publicación",
-                pub_months_opts,
-                format_func=lambda m: _MESES[m],
-                placeholder="Todos",
-            )
-        with row3[2]:
-            scr_years_f = st.multiselect("Año scraped", scr_years_opts, placeholder="Todos")
-        with row3[3]:
             scr_months_f = st.multiselect(
                 "Mes scraped",
                 scr_months_opts,
                 format_func=lambda m: _MESES[m],
                 placeholder="Todos",
+                help="Mes en que fue descubierto. Usa este filtro para ver inmuebles recientes de TODOS los portales.",
+            )
+        with row3[2]:
+            pub_years_f = st.multiselect("Año publicación", pub_years_opts, placeholder="Todos",
+                                         help="Solo disponible para BuscoCasa y Fotocasa")
+        with row3[3]:
+            pub_months_f = st.multiselect(
+                "Mes publicación",
+                pub_months_opts,
+                format_func=lambda m: _MESES[m],
+                placeholder="Todos",
+                help="Fecha en que el anunciante publicó el piso. Solo BuscoCasa y Fotocasa tienen este dato.",
             )
 
     props = db.get_properties(
@@ -1020,18 +1024,32 @@ def page_inmuebles():
     df = pd.DataFrame(props)
 
     # Apply date filters in pandas
-    if pub_years_f or pub_months_f:
-        _pub = pd.to_datetime(df.get("fecha_publicacion", pd.Series(dtype=str)), errors="coerce")
-        if pub_years_f:
-            df = df[_pub.dt.year.isin([int(y) for y in pub_years_f])]
-        if pub_months_f:
-            df = df[_pub.dt.month.isin(pub_months_f)]
     if scr_years_f or scr_months_f:
         _scr = pd.to_datetime(df.get("scraped_at", pd.Series(dtype=str)), errors="coerce")
         if scr_years_f:
             df = df[_scr.dt.year.isin([int(y) for y in scr_years_f])]
         if scr_months_f:
-            df = df[_scr.dt.month.isin(scr_months_f)]
+            _scr2 = pd.to_datetime(df.get("scraped_at", pd.Series(dtype=str)), errors="coerce")
+            df = df[_scr2.dt.month.isin(scr_months_f)]
+    if pub_years_f or pub_months_f:
+        _pub = pd.to_datetime(df.get("fecha_publicacion", pd.Series(dtype=str)), errors="coerce")
+        n_sin_fecha = int(_pub.isna().sum())
+        n_con_fecha = int(_pub.notna().sum())
+        # Warn when many properties lack a publication date
+        if n_sin_fecha > 0:
+            st.info(
+                f"ℹ️ **{n_sin_fecha} inmuebles** no tienen fecha de publicación "
+                f"(portales como Nuroa, Pisos.com, Habitaclia no la publican) y quedan excluidos de este filtro. "
+                f"Solo {n_con_fecha} la tienen. "
+                f"Para ver todos los inmuebles recientes usa **'Mes scraped'** en su lugar.",
+                icon=None,
+            )
+        mask_pub = pd.Series(True, index=df.index)
+        if pub_years_f:
+            mask_pub &= _pub.dt.year.isin([int(y) for y in pub_years_f])
+        if pub_months_f:
+            mask_pub &= _pub.dt.month.isin(pub_months_f)
+        df = df[mask_pub]
 
     if df.empty:
         _empty_chart("No hay inmuebles con los filtros actuales", 180)
