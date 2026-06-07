@@ -109,59 +109,115 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 .kpi-card {
-    background: #161b27;
-    border: 1px solid #21273a;
-    border-radius: 12px;
-    padding: 20px 22px;
+    background: linear-gradient(145deg, #111827 0%, #0d1117 100%);
+    border: 1px solid #1e2535;
+    border-radius: 16px;
+    padding: 22px 20px 16px 20px;
     position: relative;
     overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    cursor: default;
 }
+.kpi-card:hover { transform: translateY(-3px); }
+
+/* Colored left accent bar */
 .kpi-card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
+    top: 0; left: 0; bottom: 0;
+    width: 4px;
+    border-radius: 16px 0 0 16px;
 }
-.kpi-card.blue::before  { background: linear-gradient(90deg,#58a6ff,#1f6feb); }
-.kpi-card.green::before { background: linear-gradient(90deg,#3fb950,#2ea043); }
-.kpi-card.purple::before{ background: linear-gradient(90deg,#bc8cff,#8957e5); }
-.kpi-card.orange::before{ background: linear-gradient(90deg,#f0883e,#db6d28); }
+.kpi-card.blue::before   { background: linear-gradient(180deg,#388bfd,#1158c7); }
+.kpi-card.green::before  { background: linear-gradient(180deg,#3fb950,#1a7f37); }
+.kpi-card.purple::before { background: linear-gradient(180deg,#bc8cff,#8957e5); }
+.kpi-card.orange::before { background: linear-gradient(180deg,#f0883e,#c45d1a); }
+
+/* Glow on hover */
+.kpi-card.blue:hover   { box-shadow: 0 8px 32px rgba(31,111,235,0.18); border-color: #1f4070; }
+.kpi-card.green:hover  { box-shadow: 0 8px 32px rgba(63,185,80,0.18);  border-color: #1a5c2b; }
+.kpi-card.purple:hover { box-shadow: 0 8px 32px rgba(188,140,255,0.18);border-color: #5a3fa0; }
+.kpi-card.orange:hover { box-shadow: 0 8px 32px rgba(240,136,62,0.18); border-color: #8a4010; }
+
+/* Ambient glow blob in top-right */
+.kpi-card.blue::after   { content:''; position:absolute; top:-20px; right:-20px; width:90px; height:90px; border-radius:50%; background:radial-gradient(circle,rgba(31,111,235,0.14) 0%,transparent 70%); pointer-events:none; }
+.kpi-card.green::after  { content:''; position:absolute; top:-20px; right:-20px; width:90px; height:90px; border-radius:50%; background:radial-gradient(circle,rgba(63,185,80,0.13) 0%,transparent 70%); pointer-events:none; }
+.kpi-card.purple::after { content:''; position:absolute; top:-20px; right:-20px; width:90px; height:90px; border-radius:50%; background:radial-gradient(circle,rgba(188,140,255,0.13) 0%,transparent 70%); pointer-events:none; }
+.kpi-card.orange::after { content:''; position:absolute; top:-20px; right:-20px; width:90px; height:90px; border-radius:50%; background:radial-gradient(circle,rgba(240,136,62,0.13) 0%,transparent 70%); pointer-events:none; }
+
+/* Icon bubble */
+.kpi-icon-bubble {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 20px;
+    margin-bottom: 14px;
+}
+.kpi-card.blue   .kpi-icon-bubble { background: rgba(31,111,235,0.18); }
+.kpi-card.green  .kpi-icon-bubble { background: rgba(63,185,80,0.18); }
+.kpi-card.purple .kpi-icon-bubble { background: rgba(188,140,255,0.18); }
+.kpi-card.orange .kpi-icon-bubble { background: rgba(240,136,62,0.18); }
+
 .kpi-label {
-    font-size: 11px;
-    color: #8b949e;
-    font-weight: 600;
+    font-size: 10px;
+    color: #6e7b95;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .06em;
-    margin-bottom: 8px;
+    letter-spacing: .09em;
+    margin-bottom: 6px;
 }
 .kpi-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #f0f6fc;
-    line-height: 1.1;
-    margin-bottom: 4px;
+    font-size: 2.1rem;
+    font-weight: 800;
+    line-height: 1.05;
+    margin-bottom: 3px;
     word-break: break-word;
 }
-.kpi-sub { font-size: 12px; color: #8b949e; }
-.kpi-icon {
-    position: absolute;
-    top: 16px; right: 16px;
-    font-size: 22px;
-    opacity: 0.12;
+.kpi-card.blue   .kpi-value { color: #58a6ff; }
+.kpi-card.green  .kpi-value { color: #3fb950; }
+.kpi-card.purple .kpi-value { color: #bc8cff; }
+.kpi-card.orange .kpi-value { color: #f0883e; }
+
+.kpi-sub { font-size: 11px; color: #8b949e; margin-bottom: 14px; }
+
+/* Divider + badge row */
+.kpi-footer {
+    border-top: 1px solid #1a2035;
+    padding-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
+.kpi-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.kpi-badge.up     { background: rgba(63,185,80,0.15);   color: #3fb950; }
+.kpi-badge.down   { background: rgba(248,81,73,0.15);   color: #f85149; }
+.kpi-badge.neutral{ background: rgba(110,123,149,0.12); color: #8b949e; }
+
 @media (max-width: 768px) {
     .kpi-grid {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 10px !important;
     }
-    .kpi-card { padding: 14px 12px !important; }
-    .kpi-value { font-size: 1.5rem !important; }
-    .kpi-label { font-size: 10px !important; letter-spacing: .03em !important; }
-    .kpi-sub   { font-size: 11px !important; }
-    .kpi-icon  { font-size: 18px !important; top: 10px !important; right: 10px !important; }
+    .kpi-card { padding: 16px 14px 12px 16px !important; }
+    .kpi-value { font-size: 1.55rem !important; }
+    .kpi-label { font-size: 9px !important; }
+    .kpi-sub   { font-size: 10px !important; margin-bottom: 10px !important; }
+    .kpi-icon-bubble { width: 34px !important; height: 34px !important; font-size: 16px !important; margin-bottom: 10px !important; }
+    .kpi-badge { font-size: 10px !important; }
 }
 
 /* Section header */
@@ -453,13 +509,20 @@ def plotly_theme(fig, title: str = ""):
     return fig
 
 
-def kpi_card(label: str, value: str, sub: str, color: str, icon: str) -> str:
+def kpi_card(label: str, value: str, sub: str, color: str, icon: str,
+             badge: str = "", badge_type: str = "neutral") -> str:
+    footer = (
+        f'<div class="kpi-footer"><span class="kpi-badge {badge_type}">{badge}</span></div>'
+        if badge else
+        '<div class="kpi-footer"><span style="font-size:10px;color:#3a4455;">─</span></div>'
+    )
     return (
         f'<div class="kpi-card {color}">'
-        f'<div class="kpi-icon">{icon}</div>'
+        f'<div class="kpi-icon-bubble">{icon}</div>'
         f'<div class="kpi-label">{label}</div>'
         f'<div class="kpi-value">{value}</div>'
         f'<div class="kpi-sub">{sub}</div>'
+        f'{footer}'
         f'</div>'
     )
 
@@ -570,18 +633,50 @@ def page_dashboard():
         unsafe_allow_html=True,
     )
 
-    total_props = db.get_total_properties()
-    props_today = db.get_properties_today()
-    avg_price   = db.get_avg_price()
+    total_props  = db.get_total_properties()
+    props_today  = db.get_properties_today()
+    avg_price    = db.get_avg_price()
+    all_sites    = db.get_sites()
     active_sites = len(db.get_enabled_sites())
     avg_str = fmt_price(avg_price) if avg_price else "—"
 
+    # Trend data: compare last 2 scraping days
+    daily = db.get_daily_counts(7)
+    _today_count = _yest_count = 0
+    if daily:
+        _today_count = daily[-1]["count"] if daily else 0
+        _yest_count  = daily[-2]["count"] if len(daily) >= 2 else 0
+    _delta = _today_count - _yest_count
+
+    if _delta > 0:
+        scrape_badge      = f"↑ +{_delta} vs ayer"
+        scrape_badge_type = "up"
+    elif _delta < 0:
+        scrape_badge      = f"↓ {_delta} vs ayer"
+        scrape_badge_type = "down"
+    else:
+        scrape_badge      = "= igual que ayer"
+        scrape_badge_type = "neutral"
+
+    total_sites   = len(all_sites)
+    disabled_sites = total_sites - active_sites
+    sites_badge      = f"🔴 {disabled_sites} desactivados" if disabled_sites else "✅ todos activos"
+    sites_badge_type = "neutral" if disabled_sites else "up"
+
     st.markdown(
         '<div class="kpi-grid">'
-        + kpi_card("Total inmuebles",  f"{total_props:,}",    "en la base de datos",  "blue",   "🏠")
-        + kpi_card("Scraped hoy",      f"{props_today:,}",    "últimas 24 horas",     "green",  "📥")
-        + kpi_card("Precio medio",     avg_str,               "precio de venta",      "purple", "💶")
-        + kpi_card("Sitios activos",   str(active_sites),     "webs monitorizadas",   "orange", "🌐")
+        + kpi_card("Total inmuebles",  f"{total_props:,}",
+                   "en la base de datos",  "blue",   "🏠",
+                   f"📊 {active_sites} portales activos", "neutral")
+        + kpi_card("Scraped hoy",      f"{props_today:,}",
+                   "últimas 24 horas",     "green",  "📥",
+                   scrape_badge, scrape_badge_type)
+        + kpi_card("Precio medio",     avg_str,
+                   "precio de venta",      "purple", "💶",
+                   "💡 media de mercado", "neutral")
+        + kpi_card("Sitios activos",   str(active_sites),
+                   f"de {total_sites} webs monitorizadas", "orange", "🌐",
+                   sites_badge, sites_badge_type)
         + "</div>",
         unsafe_allow_html=True,
     )
