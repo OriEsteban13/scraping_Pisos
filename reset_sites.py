@@ -77,25 +77,31 @@ REAL_SITES = [
         "name": "Pisos.com Andorra",
         "base_url": "https://www.pisos.com/venta/pisos-andorra/",
         "scraper_type": "generic",
+        "notes": "URL corregida a /venta/. 200 OK.",
     },
     {
         "id": "milanuncios-andorra",
         "name": "Milanuncios Andorra",
         "base_url": "https://www.milanuncios.com/inmobiliaria-en-andorra/",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "405 Method Not Allowed.",
     },
     # ── Luxury / international agencies ──────────────────────────────────
     {
         "id": "engelvoelkers-andorra",
         "name": "Engel & Völkers Andorra",
-        "base_url": "https://www.engelvoelkers.com/en/andorra/properties/buy/",
+        "base_url": "https://www.engelvoelkers.com/ad/en",
         "scraper_type": "generic",
+        "notes": "200 OK. Agencia de lujo con listings en Andorra.",
     },
     {
         "id": "knightfrank-andorra",
         "name": "Knight Frank Andorra",
-        "base_url": "https://www.knightfrank.com/properties/residential/for-sale/andorra",
+        "base_url": "https://www.knightfrank.com/andorra",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "404 — no tienen listings de Andorra.",
     },
     {
         "id": "savills-andorra",
@@ -103,7 +109,7 @@ REAL_SITES = [
         "base_url": "https://www.savills.com/buy-property/andorra.aspx",
         "scraper_type": "generic",
         "enabled": 0,
-        "notes": "404/503 — URL cambiada; página de resultados es JS puro.",
+        "notes": "503 — página de resultados es JS puro.",
     },
     {
         "id": "sothebys-andorra",
@@ -116,23 +122,26 @@ REAL_SITES = [
     {
         "id": "barnes-andorra",
         "name": "Barnes Andorra",
-        "base_url": "https://www.barnes-international.com/real-estate/andorra/",
+        "base_url": "https://www.barnes-international.com/en/search/?localisation=andorra&transaction=purchase",
         "scraper_type": "generic",
+        "enabled": 0,
+        "notes": "Contenido JS-renderizado, solo 9 precios en HTML.",
     },
     # ── Local Andorran sites ──────────────────────────────────────────────
     {
         "id": "immobiliaria-ad",
         "name": "Immobiliaria.ad",
-        "base_url": "https://www.immobiliaria.ad/venda",
+        "base_url": "https://immobiliaria.ad/",
         "scraper_type": "generic",
-        "notes": "Portal local andorrà .ad",
+        "notes": "Portal local andorrà. 170 precios en HTML.",
     },
     {
         "id": "creditandorra-immo",
         "name": "Crèdit Andorrà Immo",
         "base_url": "https://creditandorra.ad/ca/serveis/immobiliaria",
         "scraper_type": "generic",
-        "notes": "Servei immobiliari del Crèdit Andorrà",
+        "enabled": 0,
+        "notes": "404 — dominio cambiado a creand.ad, sin sección inmobiliaria activa.",
     },
 ]
 
