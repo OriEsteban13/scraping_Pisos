@@ -857,6 +857,9 @@ def page_inmuebles():
         unsafe_allow_html=True,
     )
 
+    _MESES = {1:"Enero",2:"Febrero",3:"Marzo",4:"Abril",5:"Mayo",6:"Junio",
+              7:"Julio",8:"Agosto",9:"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"}
+
     # Pre-load data ranges
     all_raw = db.get_properties(limit=99999)
     all_df = pd.DataFrame(all_raw) if all_raw else pd.DataFrame()
@@ -866,6 +869,18 @@ def page_inmuebles():
     p_max_raw = int(precio_all.max()) if len(precio_all) else 10_000_000
     m_min_raw = int(metros_all.min()) if len(metros_all) else 0
     m_max_raw = int(metros_all.max()) if len(metros_all) else 1000
+
+    # Available years/months for date filters
+    def _date_opts(col):
+        if all_df.empty or col not in all_df.columns:
+            return [], []
+        s = pd.to_datetime(all_df[col], errors="coerce").dropna()
+        years  = sorted(s.dt.year.unique().tolist(), reverse=True)
+        months = sorted(s.dt.month.unique().tolist())
+        return [str(y) for y in years], months
+
+    pub_years_opts,  pub_months_opts  = _date_opts("fecha_publicacion")
+    scr_years_opts,  scr_months_opts  = _date_opts("scraped_at")
 
     with st.expander("🔍  Filtros", expanded=True):
         row1 = st.columns([3, 2, 2, 1])
@@ -911,6 +926,26 @@ def page_inmuebles():
         with row2[4]:
             limite = st.selectbox("Mostrar", [100, 200, 500, 1000, 2000], index=1)
 
+        row3 = st.columns([1, 2, 1, 2])
+        with row3[0]:
+            pub_years_f = st.multiselect("Año publicación", pub_years_opts, placeholder="Todos")
+        with row3[1]:
+            pub_months_f = st.multiselect(
+                "Mes publicación",
+                pub_months_opts,
+                format_func=lambda m: _MESES[m],
+                placeholder="Todos",
+            )
+        with row3[2]:
+            scr_years_f = st.multiselect("Año scraped", scr_years_opts, placeholder="Todos")
+        with row3[3]:
+            scr_months_f = st.multiselect(
+                "Mes scraped",
+                scr_months_opts,
+                format_func=lambda m: _MESES[m],
+                placeholder="Todos",
+            )
+
     props = db.get_properties(
         limit=limite,
         zona=zona_f or None,
@@ -931,8 +966,26 @@ def page_inmuebles():
 
     df = pd.DataFrame(props)
 
+    # Apply date filters in pandas
+    if pub_years_f or pub_months_f:
+        _pub = pd.to_datetime(df.get("fecha_publicacion", pd.Series(dtype=str)), errors="coerce")
+        if pub_years_f:
+            df = df[_pub.dt.year.isin([int(y) for y in pub_years_f])]
+        if pub_months_f:
+            df = df[_pub.dt.month.isin(pub_months_f)]
+    if scr_years_f or scr_months_f:
+        _scr = pd.to_datetime(df.get("scraped_at", pd.Series(dtype=str)), errors="coerce")
+        if scr_years_f:
+            df = df[_scr.dt.year.isin([int(y) for y in scr_years_f])]
+        if scr_months_f:
+            df = df[_scr.dt.month.isin(scr_months_f)]
+
+    if df.empty:
+        _empty_chart("No hay inmuebles con los filtros actuales", 180)
+        return
+
     # Quick stats bar
-    n = len(props)
+    n = len(df)
     avg_p = df["precio"].mean() if "precio" in df.columns else None
     avg_m = df["metros_cuadrados"].mean() if "metros_cuadrados" in df.columns else None
     df_valid = df[(df["precio"] > 0) & (df["metros_cuadrados"] > 0)] if not df.empty else df
