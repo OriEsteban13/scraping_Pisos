@@ -1085,9 +1085,9 @@ def page_inmuebles():
 
 def page_analisis():
     st.markdown(
-        "<h1>Análisis</h1>"
+        "<h1>Análisis del mercado</h1>"
         "<p style='color:#c9d1d9;font-size:12px;margin-bottom:20px;'>"
-        "Inteligencia de mercado inmobiliario de Andorra</p>",
+        "Todo lo que necesitas saber para comprar en Andorra</p>",
         unsafe_allow_html=True,
     )
 
@@ -1103,49 +1103,22 @@ def page_analisis():
         return
 
     df_sqm = df[df["metros_cuadrados"].notna() & (df["metros_cuadrados"] > 0)].copy()
-    df_sqm["€/m²"] = df_sqm["precio"] / df_sqm["metros_cuadrados"]
+    df_sqm["pm2"] = df_sqm["precio"] / df_sqm["metros_cuadrados"]
 
-    # ── Filtro global de análisis ──────────────────────────────────────────────
-    with st.expander("🎛  Filtros de análisis", expanded=False):
-        fc1, fc2, fc3 = st.columns(3)
-        with fc1:
-            zones_a = df["zona"].dropna().unique().tolist()
-            sel_zones = st.multiselect("Zonas", zones_a, default=zones_a,
-                                       placeholder="Todas las zonas")
-        with fc2:
-            min_p, max_p = int(df["precio"].min()), int(df["precio"].max())
-            price_rng = st.slider("Rango de precio (€)", min_p, max_p, (min_p, max_p),
-                                  step=max(1, (max_p - min_p) // 100), format="%d €")
-        with fc3:
-            tipos_a = df["tipo_inmueble"].dropna().unique().tolist()
-            sel_tipos = st.multiselect("Tipo inmueble", tipos_a, default=tipos_a)
+    n_total  = len(df)
+    avg_pr   = df["precio"].mean()
+    min_pr   = df["precio"].min()
+    max_pr   = df["precio"].max()
+    avg_pm2  = df_sqm["pm2"].mean() if not df_sqm.empty else 0
+    avg_sqm  = df["metros_cuadrados"].mean() if "metros_cuadrados" in df.columns else 0
 
-    mask = pd.Series([True] * len(df), index=df.index)
-    if sel_zones:
-        mask &= df["zona"].isin(sel_zones)
-    mask &= (df["precio"] >= price_rng[0]) & (df["precio"] <= price_rng[1])
-    if sel_tipos:
-        mask &= df["tipo_inmueble"].isin(sel_tipos)
-    df_f = df[mask].copy()
-    df_sqm_f = df_f[df_f["metros_cuadrados"].notna() & (df_f["metros_cuadrados"] > 0)].copy()
-    if not df_sqm_f.empty:
-        df_sqm_f["€/m²"] = df_sqm_f["precio"] / df_sqm_f["metros_cuadrados"]
-
-    # ── KPI summary row ────────────────────────────────────────────────────────
-    stats = db.get_price_stats()
-    n_total = len(df_f)
-    avg_pr  = df_f["precio"].mean() if n_total else 0
-    med_pr  = df_f["precio"].median() if n_total else 0
-    avg_pm2 = df_sqm_f["€/m²"].mean() if not df_sqm_f.empty else 0
-    avg_sqm = df_f["metros_cuadrados"].mean() if n_total else 0
-
-    kpi_cols = st.columns(5)
+    # ── KPIs ──────────────────────────────────────────────────────────────────
+    kpi_cols = st.columns(4)
     _kpis = [
-        ("Inmuebles", f"{n_total:,}", "en filtro actual", "blue"),
-        ("Precio medio", fmt_price(avg_pr), "venta", "purple"),
-        ("Mediana precio", fmt_price(med_pr), "50% por encima/abajo", "green"),
-        ("Precio/m² medio", f"{int(avg_pm2):,} €" if avg_pm2 else "—", "coste por m²", "orange"),
-        ("Superficie media", fmt_sqm(avg_sqm) if avg_sqm else "—", "metros cuadrados", "blue"),
+        ("Pisos en venta",    f"{n_total:,}",                "anuncios activos",           "blue"),
+        ("Precio más bajo",   fmt_price(min_pr),             "la oferta más asequible",    "green"),
+        ("Precio medio",      fmt_price(avg_pr),             "precio típico del mercado",  "purple"),
+        ("Coste por m²",      f"{int(avg_pm2):,} €" if avg_pm2 else "—", "precio medio por metro cuadrado", "orange"),
     ]
     for col, (lbl, val, sub, clr) in zip(kpi_cols, _kpis):
         col.markdown(
@@ -1157,239 +1130,177 @@ def page_analisis():
             unsafe_allow_html=True,
         )
 
-    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
 
-    # ── Row 1: Precio por zona (horizontal bar) + Distribución de precios ─────
-    r1c1, r1c2 = st.columns([3, 2], gap="large")
-
-    with r1c1:
-        section_hdr("Precio medio y €/m² por zona")
-        zone_data = db.get_price_sqm_by_zone()
-        if zone_data:
-            df_zd = pd.DataFrame(zone_data).sort_values("avg_precio", ascending=True)
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                y=df_zd["zona"],
-                x=df_zd["avg_precio"],
+    # ── Zona ranking ──────────────────────────────────────────────────────────
+    section_hdr("¿Dónde es más caro vivir?")
+    st.markdown(
+        "<p style='color:#8b949e;font-size:12px;margin:-8px 0 12px;'>"
+        "Precio medio de venta por zona, de más barato a más caro</p>",
+        unsafe_allow_html=True,
+    )
+    zone_data = db.get_price_sqm_by_zone()
+    if zone_data:
+        df_z = pd.DataFrame(zone_data)
+        df_z = df_z[df_z["count"] >= 2].sort_values("avg_precio", ascending=True)
+        if not df_z.empty:
+            global_avg_z = df_z["avg_precio"].mean()
+            df_z["color"] = df_z["avg_precio"].apply(
+                lambda x: "#3fb950" if x < global_avg_z * 0.9
+                else ("#f0883e" if x > global_avg_z * 1.1 else "#1f6feb")
+            )
+            df_z["label"] = df_z["avg_precio"].apply(
+                lambda x: f"{int(x):,} €".replace(",", ".")
+            )
+            fig = go.Figure(go.Bar(
+                y=df_z["zona"],
+                x=df_z["avg_precio"],
                 orientation="h",
-                name="Precio medio (€)",
-                marker=dict(
-                    color=df_zd["avg_precio"],
-                    colorscale=[[0, "#0e2040"], [0.5, "#1f6feb"], [1, "#58a6ff"]],
-                    showscale=False,
-                    line_width=0,
-                ),
-                text=df_zd["avg_precio"].apply(lambda x: f"{int(x):,} €"),
+                marker_color=df_z["color"],
+                marker_line_width=0,
+                text=df_z["label"],
                 textposition="outside",
-                textfont=dict(color="#8b949e", size=11),
+                textfont=dict(color="#c9d1d9", size=12),
                 hovertemplate=(
                     "<b>%{y}</b><br>"
-                    "Precio medio: %{x:,.0f} €<br>"
+                    "Precio medio: %{text}<br>"
                     "<extra></extra>"
                 ),
-                customdata=df_zd[["avg_pm2", "count"]].values,
             ))
+            # Reference line at global avg
+            fig.add_vline(
+                x=global_avg_z, line_dash="dot", line_color="#8b949e", line_width=1,
+                annotation_text="media general",
+                annotation_font_color="#8b949e", annotation_font_size=10,
+                annotation_position="top right",
+            )
             plotly_theme(fig)
             fig.update_layout(
-                height=max(250, len(df_zd) * 38),
-                margin=dict(l=0, r=80, t=10, b=10),
-                xaxis=dict(showgrid=True, gridcolor="#1a2035"),
+                height=max(260, len(df_z) * 40),
+                margin=dict(l=0, r=100, t=10, b=10),
+                xaxis=dict(showgrid=False, showticklabels=False),
                 yaxis=dict(showgrid=False),
+                bargap=0.25,
+            )
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+            # Insight callout
+            cheapest = df_z.iloc[0]
+            dearest  = df_z.iloc[-1]
+            st.markdown(
+                f"<div style='background:#0e1525;border-left:3px solid #1f6feb;"
+                f"padding:10px 14px;border-radius:0 8px 8px 0;font-size:12px;color:#c9d1d9;margin-top:4px;'>"
+                f"💡 La zona más asequible es <b>{cheapest['zona']}</b> "
+                f"({int(cheapest['avg_precio']):,} € de media). "
+                f"La más cara es <b>{dearest['zona']}</b> "
+                f"({int(dearest['avg_precio']):,} € de media), "
+                f"un <b>{int((dearest['avg_precio']/cheapest['avg_precio']-1)*100)}% más cara</b>."
+                f"</div>".replace(",", "."),
+                unsafe_allow_html=True,
+            )
+    else:
+        _empty_chart("Sin datos de zona", 200)
+
+    st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
+
+    # ── Precio por habitaciones ───────────────────────────────────────────────
+    r2a, r2b = st.columns([3, 2], gap="large")
+
+    with r2a:
+        section_hdr("¿Cuánto cuesta según el número de habitaciones?")
+        st.markdown(
+            "<p style='color:#8b949e;font-size:12px;margin:-8px 0 12px;'>"
+            "Precio mínimo, medio y máximo según habitaciones</p>",
+            unsafe_allow_html=True,
+        )
+        df_hab = df[df["habitaciones"].notna() & (df["habitaciones"] > 0) & (df["habitaciones"] <= 6)].copy()
+        df_hab["hab_label"] = df_hab["habitaciones"].astype(int).apply(
+            lambda x: f"{x} hab." if x < 6 else "6+ hab."
+        )
+        if not df_hab.empty:
+            hab_stats = df_hab.groupby("hab_label")["precio"].agg(
+                minimo="min", medio="mean", maximo="max", n="count"
+            ).reset_index().sort_values("hab_label")
+
+            fig = go.Figure()
+            colors_hab = ["#3fb950", "#58a6ff", "#f0883e", "#bc8cff", "#ff7b72", "#79c0ff"]
+            for i, row in hab_stats.iterrows():
+                c = colors_hab[i % len(colors_hab)]
+                fig.add_trace(go.Bar(
+                    name=row["hab_label"],
+                    x=[row["hab_label"]],
+                    y=[row["medio"]],
+                    marker_color=c,
+                    marker_line_width=0,
+                    error_y=dict(
+                        type="data",
+                        symmetric=False,
+                        array=[row["maximo"] - row["medio"]],
+                        arrayminus=[row["medio"] - row["minimo"]],
+                        color=c,
+                        thickness=2,
+                        width=8,
+                    ),
+                    text=f"{int(row['medio']):,} €".replace(",", "."),
+                    textposition="outside",
+                    textfont=dict(size=12, color="#c9d1d9"),
+                    hovertemplate=(
+                        f"<b>{row['hab_label']}</b><br>"
+                        f"Medio: {int(row['medio']):,} €<br>"
+                        f"Desde: {int(row['minimo']):,} €<br>"
+                        f"Hasta: {int(row['maximo']):,} €<br>"
+                        f"Anuncios: {int(row['n'])}<extra></extra>"
+                    ).replace(",", "."),
+                    showlegend=False,
+                ))
+            plotly_theme(fig)
+            fig.update_layout(
+                height=340,
+                margin=dict(l=0, r=10, t=30, b=10),
+                yaxis=dict(showgrid=False, showticklabels=False),
+                xaxis=dict(showgrid=False),
                 bargap=0.3,
             )
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         else:
-            _empty_chart("Sin datos de zona", 200)
+            _empty_chart("Sin datos de habitaciones", 280)
 
-    with r1c2:
-        section_hdr("Distribución de precios")
-        if not df_f.empty:
-            p25 = df_f["precio"].quantile(0.25)
-            p50 = df_f["precio"].quantile(0.50)
-            p75 = df_f["precio"].quantile(0.75)
-            fig = px.histogram(
-                df_f, x="precio", nbins=30,
-                labels={"precio": "Precio (€)", "count": "Nº inmuebles"},
-            )
-            fig.update_traces(
-                marker_color="#1f6feb",
-                marker_line_color="#0d1117",
-                marker_line_width=1,
-                opacity=0.85,
-            )
-            for pct, label, color in [
-                (p25, "P25", "#f0883e"),
-                (p50, "Mediana", "#3fb950"),
-                (p75, "P75", "#bc8cff"),
-            ]:
-                fig.add_vline(
-                    x=pct, line_dash="dot", line_color=color, line_width=1.5,
-                    annotation_text=label,
-                    annotation_font_color=color,
-                    annotation_font_size=10,
-                )
-            plotly_theme(fig)
-            fig.update_layout(height=320, margin=dict(l=10, r=10, t=20, b=10))
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        else:
-            _empty_chart("Sin datos", 200)
-
-    # ── Row 2: Scatter precio vs m² + Box por habitaciones ────────────────────
-    r2c1, r2c2 = st.columns(2, gap="large")
-
-    with r2c1:
-        section_hdr("Precio vs superficie — por zona")
-        if not df_sqm_f.empty:
-            fig = px.scatter(
-                df_sqm_f,
-                x="metros_cuadrados",
-                y="precio",
-                color="zona",
-                size="€/m²",
-                size_max=18,
-                opacity=0.75,
-                hover_name="titulo",
-                hover_data={
-                    "zona": True,
-                    "precio": ":.0f",
-                    "metros_cuadrados": ":.0f",
-                    "€/m²": ":.0f",
-                    "habitaciones": True,
-                },
-                labels={
-                    "metros_cuadrados": "Superficie (m²)",
-                    "precio": "Precio (€)",
-                    "€/m²": "€/m²",
-                },
-            )
-            # Trend line
-            if len(df_sqm_f) >= 3:
-                import numpy as np
-                x_vals = df_sqm_f["metros_cuadrados"].values
-                y_vals = df_sqm_f["precio"].values
-                z = np.polyfit(x_vals, y_vals, 1)
-                x_line = [x_vals.min(), x_vals.max()]
-                y_line = [z[0] * x + z[1] for x in x_line]
-                fig.add_trace(go.Scatter(
-                    x=x_line, y=y_line,
-                    mode="lines",
-                    line=dict(color="#ffffff", width=1.5, dash="dot"),
-                    name="Tendencia",
-                    showlegend=True,
-                ))
-            plotly_theme(fig)
-            fig.update_layout(height=360)
-            st.plotly_chart(fig, use_container_width=True,
-                            config={"displayModeBar": True, "modeBarButtonsToRemove": ["select2d", "lasso2d"]})
-        else:
-            _empty_chart("Insuficientes datos de superficie", 280)
-
-    with r2c2:
-        section_hdr("Precio por número de habitaciones")
-        rooms_data = db.get_rooms_distribution()
-        if rooms_data:
-            df_r = pd.DataFrame(rooms_data)
-            # Box plots per room count from raw data
-            df_box = df_f[
-                df_f["habitaciones"].notna() &
-                (df_f["habitaciones"] > 0) &
-                (df_f["habitaciones"] <= 6)
-            ].copy()
-            df_box["Habitaciones"] = df_box["habitaciones"].astype(int).astype(str) + " hab."
-
-            if not df_box.empty:
-                fig = px.box(
-                    df_box,
-                    x="Habitaciones",
-                    y="precio",
-                    color="Habitaciones",
-                    points="all",
-                    labels={"precio": "Precio (€)", "Habitaciones": ""},
-                    color_discrete_sequence=["#58a6ff","#3fb950","#f0883e","#bc8cff","#ff7b72","#79c0ff"],
-                )
-                fig.update_traces(
-                    marker_size=4,
-                    marker_opacity=0.6,
-                    jitter=0.3,
-                )
-                plotly_theme(fig)
-                fig.update_layout(height=360, showlegend=False)
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-            else:
-                _empty_chart("Sin datos de habitaciones", 280)
-        else:
-            _empty_chart("Sin datos", 200)
-
-    # ── Row 3: €/m² por zona (bubble) + Tipo inmueble comparativa ────────────
-    r3c1, r3c2 = st.columns([2, 1], gap="large")
-
-    with r3c1:
-        section_hdr("€/m² por zona — tamaño = volumen de inmuebles")
-        zone_data2 = db.get_price_sqm_by_zone()
-        if zone_data2:
-            df_z2 = pd.DataFrame(zone_data2)
-            df_z2 = df_z2[df_z2["avg_pm2"].notna() & (df_z2["avg_pm2"] > 0)]
-            if not df_z2.empty:
-                fig = px.scatter(
-                    df_z2,
-                    x="avg_sqm" if "avg_sqm" in df_z2.columns else "avg_precio",
-                    y="avg_pm2",
-                    size="count",
-                    color="avg_pm2",
-                    text="zona",
-                    size_max=60,
-                    color_continuous_scale=[[0, "#0e2040"], [0.5, "#1f6feb"], [1, "#58a6ff"]],
-                    hover_name="zona",
-                    hover_data={
-                        "count": True,
-                        "avg_precio": ":.0f",
-                        "avg_pm2": ":.0f",
-                    },
-                    labels={
-                        "avg_pm2": "Precio medio / m² (€)",
-                        "avg_sqm": "Sup. media (m²)" if "avg_sqm" in df_z2.columns else "Precio medio",
-                        "count": "Nº inmuebles",
-                    },
-                )
-                fig.update_traces(
-                    textposition="top center",
-                    textfont=dict(size=10, color="#c9d1d9"),
-                    marker=dict(opacity=0.8, line=dict(width=1, color="#0d1117")),
-                )
-                plotly_theme(fig)
-                fig.update_coloraxes(showscale=False)
-                fig.update_layout(height=340)
-                st.plotly_chart(fig, use_container_width=True,
-                                config={"displayModeBar": False})
-        else:
-            _empty_chart("Sin datos de zona", 260)
-
-    with r3c2:
-        section_hdr("Distribución por tipo")
+    with r2b:
+        section_hdr("¿Qué tipo de inmueble hay en venta?")
+        st.markdown(
+            "<p style='color:#8b949e;font-size:12px;margin:-8px 0 12px;'>"
+            "Distribución de anuncios por tipo</p>",
+            unsafe_allow_html=True,
+        )
         tipo_data = db.get_tipo_distribution()
         if tipo_data:
             df_t = pd.DataFrame(tipo_data)
+            # Human-readable labels
+            tipo_map = {"piso": "Piso / Apartamento", "casa": "Casa / Chalet",
+                        "local": "Local / Oficina", "terreno": "Terreno",
+                        "garage": "Garaje", "duplex": "Dúplex"}
+            df_t["tipo_label"] = df_t["tipo_inmueble"].map(
+                lambda x: tipo_map.get(str(x).lower(), str(x).capitalize())
+            )
             fig = px.pie(
-                df_t, names="tipo_inmueble", values="count",
-                hole=0.6,
-                color_discrete_sequence=["#1f6feb","#3fb950","#f0883e","#bc8cff","#ff7b72"],
+                df_t, names="tipo_label", values="count",
+                hole=0.55,
+                color_discrete_sequence=["#1f6feb", "#3fb950", "#f0883e", "#bc8cff", "#ff7b72"],
             )
             fig.update_traces(
                 textposition="outside",
-                textfont=dict(size=11, color="#8b949e"),
+                textfont=dict(size=11, color="#c9d1d9"),
                 marker=dict(line=dict(color="#0d1117", width=2)),
-                pull=[0.05] + [0] * (len(df_t) - 1),
             )
             plotly_theme(fig)
             fig.update_layout(
-                height=340,
-                showlegend=True,
-                legend=dict(orientation="v", x=1.0, y=0.5, font_size=10),
-                margin=dict(l=0, r=60, t=10, b=10),
+                height=320,
+                showlegend=False,
+                margin=dict(l=20, r=20, t=20, b=20),
                 annotations=[dict(
-                    text=f"<b>{df_t['count'].sum()}</b><br>inmuebles",
-                    x=0.5, y=0.5, font_size=13,
-                    font_color="#c9d1d9",
+                    text=f"<b>{df_t['count'].sum()}</b><br><span style='font-size:11px'>pisos</span>",
+                    x=0.5, y=0.5, font_size=16,
+                    font_color="#e6edf3",
                     showarrow=False,
                 )],
             )
@@ -1397,21 +1308,161 @@ def page_analisis():
         else:
             _empty_chart("Sin datos de tipo", 260)
 
-    # ── Row 4: Tabla completa estadísticas por zona ───────────────────────────
-    section_hdr("Tabla comparativa por zona")
+    st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
+
+    # ── Estado del mercado (scoring) ──────────────────────────────────────────
+    r3a, r3b = st.columns([2, 3], gap="large")
+
+    with r3a:
+        section_hdr("¿Cómo está el mercado ahora?")
+        st.markdown(
+            "<p style='color:#8b949e;font-size:12px;margin:-8px 0 12px;'>"
+            "Proporción de pisos baratos, a precio de mercado y caros</p>",
+            unsafe_allow_html=True,
+        )
+        # Compute scoring for all properties
+        if not df_sqm.empty:
+            _zone_avg = df_sqm.groupby("zona")["pm2"].agg(["mean", "count"]) if "zona" in df_sqm.columns else pd.DataFrame()
+            _glob_avg = float(df_sqm["pm2"].mean())
+
+            def _quick_score(row):
+                pm2 = row.get("pm2", 0)
+                if not pm2: return None
+                zona_r = str(row.get("zona", ""))
+                ref = (float(_zone_avg.loc[zona_r, "mean"])
+                       if not _zone_avg.empty and zona_r in _zone_avg.index
+                       and _zone_avg.loc[zona_r, "count"] >= 3 else _glob_avg)
+                ratio = pm2 / ref if ref > 0 else 1
+                if row.get("parking") == 1: ratio -= 0.05
+                if row.get("terraza") == 1: ratio -= 0.03
+                if ratio < 0.75:  return "🔥 Chollo"
+                if ratio < 0.90:  return "✅ Interesante"
+                if ratio < 1.10:  return "😐 Precio de mercado"
+                if ratio < 1.30:  return "⚠️ Algo caro"
+                return "❌ Muy caro"
+
+            df_sqm["score"] = df_sqm.apply(_quick_score, axis=1)
+            score_counts = df_sqm["score"].value_counts().reset_index()
+            score_counts.columns = ["score", "n"]
+            score_order = ["🔥 Chollo", "✅ Interesante", "😐 Precio de mercado", "⚠️ Algo caro", "❌ Muy caro"]
+            score_colors = {"🔥 Chollo": "#3fb950", "✅ Interesante": "#58a6ff",
+                            "😐 Precio de mercado": "#8b949e", "⚠️ Algo caro": "#f0883e", "❌ Muy caro": "#f85149"}
+            score_counts = score_counts[score_counts["score"].isin(score_order)]
+            score_counts["score"] = pd.Categorical(score_counts["score"], categories=score_order, ordered=True)
+            score_counts = score_counts.sort_values("score")
+
+            if not score_counts.empty:
+                fig = go.Figure(go.Bar(
+                    x=score_counts["n"],
+                    y=score_counts["score"],
+                    orientation="h",
+                    marker_color=[score_colors.get(s, "#1f6feb") for s in score_counts["score"]],
+                    marker_line_width=0,
+                    text=score_counts["n"],
+                    textposition="outside",
+                    textfont=dict(color="#c9d1d9", size=13),
+                    hovertemplate="<b>%{y}</b><br>%{x} pisos<extra></extra>",
+                ))
+                plotly_theme(fig)
+                fig.update_layout(
+                    height=280,
+                    margin=dict(l=0, r=40, t=10, b=10),
+                    xaxis=dict(showgrid=False, showticklabels=False),
+                    yaxis=dict(showgrid=False),
+                    bargap=0.3,
+                )
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        else:
+            _empty_chart("Sin datos de superficie", 200)
+
+    with r3b:
+        section_hdr("Los mejores chollos ahora mismo")
+        st.markdown(
+            "<p style='color:#8b949e;font-size:12px;margin:-8px 0 12px;'>"
+            "Pisos por debajo del precio de mercado de su zona</p>",
+            unsafe_allow_html=True,
+        )
+        if not df_sqm.empty and "score" in df_sqm.columns:
+            df_chollos = df_sqm[df_sqm["score"].isin(["🔥 Chollo", "✅ Interesante"])].copy()
+            df_chollos = df_chollos.sort_values("pm2").head(10)
+            if not df_chollos.empty:
+                def _fmt_eur_k(v):
+                    if v >= 1_000_000:
+                        return f"{v/1_000_000:.1f}M €"
+                    if v >= 1_000:
+                        return f"{int(v/1_000)}K €"
+                    return f"{int(v)} €"
+
+                tbl = pd.DataFrame({
+                    "": df_chollos["score"],
+                    "Zona": df_chollos["zona"].fillna("—"),
+                    "Precio": df_chollos["precio"].apply(_fmt_eur_k),
+                    "m²": df_chollos["metros_cuadrados"].apply(
+                        lambda x: f"{int(x)} m²" if pd.notna(x) else "—"
+                    ),
+                    "Hab.": df_chollos["habitaciones"].apply(
+                        lambda x: str(int(x)) if pd.notna(x) else "—"
+                    ),
+                    "€/m²": df_chollos["pm2"].apply(lambda x: f"{int(x):,} €".replace(",", ".")),
+                    "Ver": df_chollos["url"].fillna(""),
+                })
+                col_cfg_ch = {
+                    "":     st.column_config.TextColumn("", width="small"),
+                    "Zona": st.column_config.TextColumn("Zona", width="medium"),
+                    "Precio": st.column_config.TextColumn("Precio", width="small"),
+                    "m²":   st.column_config.TextColumn("m²", width="small"),
+                    "Hab.": st.column_config.TextColumn("Hab.", width="small"),
+                    "€/m²": st.column_config.TextColumn("€/m²", width="small"),
+                    "Ver":  st.column_config.LinkColumn("Ver", display_text="Abrir ↗", width="small"),
+                }
+                st.dataframe(tbl, use_container_width=True, hide_index=True,
+                             height=(len(tbl) + 1) * 36 + 4, column_config=col_cfg_ch)
+            else:
+                st.info("No hay chollos detectados con los datos actuales.")
+        else:
+            _empty_chart("Sin datos suficientes", 200)
+
+    st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
+
+    # ── Tabla resumen por zona ────────────────────────────────────────────────
+    section_hdr("Resumen por zona")
+    st.markdown(
+        "<p style='color:#8b949e;font-size:12px;margin:-8px 0 12px;'>"
+        "Comparativa rápida: desde cuánto puedes comprar en cada zona</p>",
+        unsafe_allow_html=True,
+    )
     zone_tbl = db.get_price_sqm_by_zone()
     if zone_tbl:
         df_tbl = pd.DataFrame(zone_tbl)
+        df_tbl = df_tbl[df_tbl["count"] >= 1].sort_values("avg_precio")
+
+        def _fmtk(v):
+            if not v or pd.isna(v): return "—"
+            v = int(v)
+            if v >= 1_000_000: return f"{v/1_000_000:.1f}M €"
+            return f"{v:,} €".replace(",", ".")
+
+        df_tbl["Zona"]         = df_tbl["zona"]
+        df_tbl["Anuncios"]     = df_tbl["count"].astype(int)
+        df_tbl["Desde"]        = df_tbl["min_precio"].apply(_fmtk)
+        df_tbl["Hasta"]        = df_tbl["max_precio"].apply(_fmtk)
+        df_tbl["Precio medio"] = df_tbl["avg_precio"].apply(_fmtk)
+        df_tbl["Coste / m²"]   = df_tbl["avg_pm2"].apply(
+            lambda v: f"{int(v):,} €".replace(",", ".") if v and not pd.isna(v) else "—"
+        )
+
+        show_cols = ["Zona", "Anuncios", "Desde", "Hasta", "Precio medio", "Coste / m²"]
         col_cfg_tbl = {
-            "zona": st.column_config.TextColumn("Zona", width="medium"),
-            "count": st.column_config.NumberColumn("Inmuebles", format="%d", width="small"),
-            "avg_precio": st.column_config.NumberColumn("Precio medio", format="%d €", width="small"),
-            "avg_pm2": st.column_config.NumberColumn("€/m²", format="%d €", width="small"),
-            "min_precio": st.column_config.NumberColumn("Precio mín.", format="%d €", width="small"),
-            "max_precio": st.column_config.NumberColumn("Precio máx.", format="%d €", width="small"),
+            "Zona":          st.column_config.TextColumn("Zona", width="medium"),
+            "Anuncios":      st.column_config.NumberColumn("Anuncios", format="%d", width="small"),
+            "Desde":         st.column_config.TextColumn("Desde", width="small"),
+            "Hasta":         st.column_config.TextColumn("Hasta", width="small"),
+            "Precio medio":  st.column_config.TextColumn("Precio medio", width="small"),
+            "Coste / m²":    st.column_config.TextColumn("Coste / m²", width="small"),
         }
-        st.dataframe(df_tbl, use_container_width=True, hide_index=True,
-                     column_config=col_cfg_tbl)
+        tbl_h = (len(df_tbl) + 1) * 36 + 4
+        st.dataframe(df_tbl[show_cols], use_container_width=True, hide_index=True,
+                     height=tbl_h, column_config=col_cfg_tbl)
 
 
 def page_scraping():
@@ -1737,10 +1788,7 @@ def page_ajustes():
         db.set_setting("proxy_url", new_proxy_url.strip())
         db.set_setting("proxy_enabled", "1" if new_proxy_enabled else "0")
         if new_proxy_url.strip() and new_proxy_enabled:
-            import sqlite3 as _sq3
-            _conn3 = _sq3.connect(str(db.DB_PATH))
-            _conn3.execute("UPDATE sites SET enabled=1 WHERE id='idealista-andorra'")
-            _conn3.commit(); _conn3.close()
+            db.toggle_site("idealista-andorra", True)
             st.success("✓ Proxy guardado. Idealista activado automáticamente.")
         elif not new_proxy_enabled:
             st.success("✓ Proxy desactivado.")

@@ -1,11 +1,9 @@
 """
 Reset sites table to only include real, verified domains.
 Run once: python reset_sites.py
+Works with both SQLite (local) and PostgreSQL (Supabase).
 """
-import sqlite3
-from pathlib import Path
-
-DB_PATH = Path(__file__).parent / "data" / "realestate.db"
+import db
 
 REAL_SITES = [
     # ── Major portals with dedicated scrapers ─────────────────────────────
@@ -29,6 +27,13 @@ REAL_SITES = [
         "base_url": "https://www.habitaclia.com/comprar-en-andorra.htm",
         "scraper_type": "habitaclia",
         "notes": "Portal catalán con listings de Andorra.",
+    },
+    {
+        "id": "buscocasa-andorra",
+        "name": "BuscoCasa Andorra",
+        "base_url": "https://www.buscocasa.ad/es/comprar/",
+        "scraper_type": "buscocasa",
+        "notes": "Portal local .ad con inmuebles de Andorra.",
     },
     # ── International portals ─────────────────────────────────────────────
     {
@@ -121,30 +126,30 @@ REAL_SITES = [
     },
 ]
 
+
 def reset():
-    conn = sqlite3.connect(str(DB_PATH))
-    cur = conn.cursor()
+    db.init_db()
+    # Clear all existing sites
+    with db.get_conn() as conn:
+        conn.execute("DELETE FROM sites")
+    print("Cleared sites table.")
 
-    # Delete all existing sites
-    cur.execute("DELETE FROM sites")
-    print(f"Cleared sites table.")
-
-    # Insert real sites
     for s in REAL_SITES:
-        cur.execute("""
-            INSERT OR REPLACE INTO sites
-            (id, name, base_url, enabled, country, site_type, scraper_type, selectors_json, notes)
-            VALUES (?, ?, ?, 1, 'Andorra', 'portal', ?, '{}', ?)
-        """, (
-            s["id"], s["name"], s["base_url"],
-            s.get("scraper_type", "generic"),
-            s.get("notes", ""),
-        ))
+        db.upsert_site({
+            "id":           s["id"],
+            "name":         s["name"],
+            "base_url":     s["base_url"],
+            "enabled":      1,
+            "country":      "Andorra",
+            "site_type":    "portal",
+            "scraper_type": s.get("scraper_type", "generic"),
+            "selectors_json": "{}",
+            "notes":        s.get("notes", ""),
+        })
         print(f"  + {s['name']}")
 
-    conn.commit()
-    conn.close()
     print(f"\nDone. {len(REAL_SITES)} real sites loaded.")
+
 
 if __name__ == "__main__":
     reset()

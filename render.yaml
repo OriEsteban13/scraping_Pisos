@@ -6,14 +6,7 @@ services:
     startCommand: python startup.py && streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.fileWatcherType none
     plan: free
     envVars:
-      - key: DATA_DIR
-        value: /var/data
+      - key: DATABASE_URL
+        sync: false        # set manually in Render dashboard — paste Supabase connection string
       - key: PYTHON_VERSION
         value: 3.11.0
-
-    # Persistent disk — keeps the SQLite DB across deploys ($1/month, 1 GB)
-    # Comment out if you want ephemeral storage (data resets on each deploy)
-    disk:
-      name: realestate-data
-      mountPath: /var/data
-      sizeGB: 1

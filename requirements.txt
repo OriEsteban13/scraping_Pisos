@@ -13,3 +13,4 @@ lxml==6.1.1
 streamlit-option-menu==0.4.0
 curl_cffi==0.15.0
 fake-useragent==2.2.0
+psycopg2-binary==2.9.10

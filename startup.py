@@ -1,17 +1,19 @@
 """
 startup.py — Run once before Streamlit starts.
 Initialises the DB and seeds sites on first deploy.
+Works with both SQLite (local) and PostgreSQL (Supabase / Render).
 """
 import db
-from pathlib import Path
 
-db.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+# For SQLite, ensure the data directory exists
+if not db._USE_PG:
+    db.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 db.init_db()
 
-import sqlite3
-conn = sqlite3.connect(str(db.DB_PATH))
-site_count = conn.execute("SELECT COUNT(*) FROM sites").fetchone()[0]
-conn.close()
+with db.get_conn() as conn:
+    row = conn.execute("SELECT COUNT(*) AS cnt FROM sites").fetchone()
+    site_count = row["cnt"]
 
 if site_count == 0:
     print("First run — seeding sites…")
@@ -19,4 +21,5 @@ if site_count == 0:
     reset()
 else:
     prop_count = db.get_total_properties()
-    print(f"DB ready: {site_count} sites, {prop_count} properties.")
+    db_type = "PostgreSQL" if db._USE_PG else "SQLite"
+    print(f"DB ready ({db_type}): {site_count} sites, {prop_count} properties.")
