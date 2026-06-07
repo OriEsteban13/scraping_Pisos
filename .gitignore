@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+
+# SQLite database (created at runtime)
+data/
+exports/
+{data,exports}/
+scraping.log
+
+# macOS
+.DS_Store
