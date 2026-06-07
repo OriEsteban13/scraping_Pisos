@@ -42,6 +42,9 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 
 .stApp { background-color: #0d1117 !important; }
 .main .block-container { padding: 1.5rem 2rem 4rem 2rem; max-width: 1400px; }
+@media (max-width: 768px) {
+    .main .block-container { padding: 1rem 0.6rem 3rem 0.6rem !important; }
+}
 /* Let dataframes grow to full content height */
 [data-testid="stDataFrame"] > div { max-height: none !important; }
 [data-testid="stDataFrame"] iframe { min-height: 100px; height: auto !important; }
@@ -138,8 +141,9 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     font-size: 2rem;
     font-weight: 700;
     color: #f0f6fc;
-    line-height: 1;
+    line-height: 1.1;
     margin-bottom: 4px;
+    word-break: break-word;
 }
 .kpi-sub { font-size: 12px; color: #8b949e; }
 .kpi-icon {
@@ -147,6 +151,17 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     top: 16px; right: 16px;
     font-size: 22px;
     opacity: 0.12;
+}
+@media (max-width: 768px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    .kpi-card { padding: 14px 12px !important; }
+    .kpi-value { font-size: 1.5rem !important; }
+    .kpi-label { font-size: 10px !important; letter-spacing: .03em !important; }
+    .kpi-sub   { font-size: 11px !important; }
+    .kpi-icon  { font-size: 18px !important; top: 10px !important; right: 10px !important; }
 }
 
 /* Section header */
@@ -354,6 +369,44 @@ footer    { visibility: hidden; }
 }
 [data-testid="stToolbar"] svg {
     fill: #c9d1d9 !important;
+}
+
+/* ── Mobile responsive ────────────────────────────────────── */
+@media (max-width: 768px) {
+    /* Headings smaller on mobile */
+    h1 { font-size: 1.25rem !important; }
+    h2 { font-size: 1rem !important; }
+
+    /* Metric containers */
+    [data-testid="metric-container"] { padding: 12px 14px !important; }
+    [data-testid="metric-container"] [data-testid="metric-value"] {
+        font-size: 1.3rem !important;
+    }
+
+    /* st.columns inside the app — force them to wrap on narrow screens */
+    [data-testid="column"] { min-width: 140px !important; }
+
+    /* Expander padding */
+    [data-testid="stExpander"] > div { padding: 8px 4px !important; }
+
+    /* Dataframe — allow horizontal scroll instead of overflowing */
+    [data-testid="stDataFrame"] { overflow-x: auto !important; }
+
+    /* Plotly charts — fill width */
+    [data-testid="stPlotlyChart"] { width: 100% !important; }
+
+    /* Reduce button font size */
+    [data-testid="baseButton-primary"],
+    [data-testid="baseButton-secondary"] {
+        font-size: 13px !important;
+        padding: 6px 12px !important;
+    }
+
+    /* Sidebar on mobile: auto-collapsed, full width when open */
+    [data-testid="stSidebar"] {
+        min-width: 100vw !important;
+        max-width: 100vw !important;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
