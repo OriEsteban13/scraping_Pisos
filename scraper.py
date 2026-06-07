@@ -45,6 +45,14 @@ _CLOUDFLARE_SIGNALS = ("Pardon Our Interruption", "Just a moment", "Please Wait"
 # Scraper types that route through the configured proxy (to bypass geo-IP blocks)
 _PROXY_SITES = {"idealista"}
 
+# Sites with paginated results:
+#   "param"  → append &param=N to base URL          (buscocasa)
+#   "path"   → append /N/ to base URL path           (pisoscom)
+_PAGINATED_SITES = {
+    "buscocasa": ("pn",   "param", 10),
+    "pisoscom":  ("",     "path",  5),
+}
+
 
 def _get_proxy() -> Optional[str]:
     """Return configured proxy URL from DB, or None if not set/disabled."""
@@ -957,18 +965,178 @@ def _scrape_buscocasa(html: str, site: Dict) -> List[Dict]:
     return props
 
 
+# ─── Pisos.com scraper ────────────────────────────────────────────────────────
+
+def _scrape_pisoscom(html: str, site: Dict) -> List[Dict]:
+    soup = BeautifulSoup(html, "lxml")
+    cards = soup.select("div.ad-preview")
+    if not cards:
+        return _scrape_heuristic(html, site)
+
+    base = "https://www.pisos.com"
+    props = []
+    for card in cards:
+        a_tag = card.select_one("a[href]")
+        href = a_tag["href"] if a_tag else ""
+        url = _abs(href, base) if href else ""
+
+        price_el = card.select_one("[class*='price'], [class*='precio']")
+        precio = _price(price_el.get_text(strip=True)) if price_el else None
+        if not precio:
+            continue
+
+        text = card.get_text(" ", strip=True)
+        metros = _sqm(text)
+        m_hab = re.search(r"(\d+)\s*habs?\.?", text, re.I)
+        habs = int(m_hab.group(1)) if m_hab else None
+        m_ban = re.search(r"(\d+)\s*baños?\.?", text, re.I)
+        banos = int(m_ban.group(1)) if m_ban else None
+
+        text_low = text.lower()
+        has_parking = 1 if any(w in text_low for w in ("parking", "garaje", "garagem")) else None
+        has_terraza = 1 if any(w in text_low for w in ("terraza", "terrassa", "jardín", "jardí")) else None
+
+        # Location: typically "Nombre zona (municipio)" after title
+        loc_el = card.select_one("[class*='location'], [class*='zona'], [class*='locality']")
+        zona_raw = loc_el.get_text(strip=True) if loc_el else ""
+        if not zona_raw:
+            m_loc = re.search(r"\(([^)]{3,30})\)", text)
+            zona_raw = m_loc.group(1) if m_loc else ""
+        zona = _map_zona(zona_raw) if zona_raw else "Andorra"
+
+        tipo_raw = text_low
+        if "casa" in tipo_raw or "chalet" in tipo_raw or "villa" in tipo_raw:
+            tipo = "casa"
+        elif "local" in tipo_raw or "oficina" in tipo_raw:
+            tipo = "local"
+        elif "terreno" in tipo_raw or "solar" in tipo_raw:
+            tipo = "terreno"
+        else:
+            tipo = "piso"
+
+        props.append({
+            "titulo": (a_tag.get_text(strip=True) if a_tag else "") or f"Piso en {zona}",
+            "precio": precio,
+            "metros_cuadrados": metros,
+            "habitaciones": habs,
+            "banos": banos,
+            "zona": zona,
+            "portal": "Pisos.com",
+            "url": url or site["base_url"],
+            "parking": has_parking,
+            "terraza": has_terraza,
+            "tipo_inmueble": tipo,
+            "site_id": site["id"],
+            "estado": "desconocido",
+        })
+    return props
+
+
+def _map_zona(text: str) -> str:
+    """Map a raw location string to a canonical Andorran zone name."""
+    t = text.lower()
+    mapping = {
+        "andorra la vella": "Andorra la Vella",
+        "andorra vella": "Andorra la Vella",
+        "escaldes": "Escaldes-Engordany",
+        "engordany": "Escaldes-Engordany",
+        "encamp": "Encamp",
+        "massana": "La Massana",
+        "la massana": "La Massana",
+        "ordino": "Ordino",
+        "canillo": "Canillo",
+        "sant julià": "Sant Julià de Lòria",
+        "sant julia": "Sant Julià de Lòria",
+        "san julià": "Sant Julià de Lòria",
+    }
+    for key, val in mapping.items():
+        if key in t:
+            return val
+    return text.title() if text else "Andorra"
+
+
+# ─── Immobiliaria.ad scraper ──────────────────────────────────────────────────
+
+def _scrape_immobiliaria_ad(html: str, site: Dict) -> List[Dict]:
+    soup = BeautifulSoup(html, "lxml")
+    items = soup.select("ul.flats-listing li")
+    if not items:
+        return _scrape_heuristic(html, site)
+
+    base = "https://immobiliaria.ad"
+    props = []
+    for item in items:
+        preu_el = item.select_one(".field-preu p, .field-preu")
+        price_text = preu_el.get_text(strip=True) if preu_el else ""
+        if "venut" in price_text.lower() or "llogat" in price_text.lower():
+            continue
+        precio = _price(price_text)
+        if not precio:
+            continue
+
+        interior_el = item.select_one(".field-interior")
+        sqm_text = interior_el.get_text(strip=True) if interior_el else ""
+        metros = _sqm(sqm_text.replace("M2", "m²").replace("M 2", "m²"))
+
+        hab_el = item.select_one(".field-habitacions")
+        habs = None
+        if hab_el:
+            m = re.search(r"(\d+)", hab_el.get_text(strip=True))
+            habs = int(m.group(1)) if m else None
+
+        ban_el = item.select_one(".field-banys")
+        banos = None
+        if ban_el:
+            m = re.search(r"(\d+)", ban_el.get_text(strip=True))
+            banos = int(m.group(1)) if m else None
+
+        exterior_el = item.select_one(".field-exterior")
+        has_terraza = 1 if exterior_el and re.search(r"\d", exterior_el.get_text()) else None
+
+        planta_el = item.select_one(".field-planta")
+        planta_text = planta_el.get_text(strip=True) if planta_el else ""
+        m_planta = re.search(r"(\d+)", planta_text)
+        planta = int(m_planta.group(1)) if m_planta else None
+
+        title_el = item.select_one(".field-title")
+        titulo = title_el.get_text(strip=True) if title_el else ""
+
+        # URL: button link or any a inside item
+        a_tag = item.select_one(".button a, a[href^='http']")
+        url = a_tag["href"] if a_tag else site["base_url"]
+
+        props.append({
+            "titulo": titulo or "Inmueble Immobiliaria.ad",
+            "precio": precio,
+            "metros_cuadrados": metros,
+            "habitaciones": habs,
+            "banos": banos,
+            "zona": "Andorra",
+            "portal": "Immobiliaria.ad",
+            "url": url,
+            "terraza": has_terraza,
+            "planta": planta,
+            "tipo_inmueble": "piso",
+            "site_id": site["id"],
+            "estado": "desconocido",
+        })
+    return props
+
+
 # ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 _PARSERS = {
-    "fotocasa":   _scrape_fotocasa,
-    "idealista":  _scrape_idealista,
-    "habitaclia": _scrape_habitaclia,
-    "buscocasa":  _scrape_buscocasa,
-    "trovit":     _scrape_trovit,
-    "nuroa":      _scrape_nuroa,
-    "pisosad":    _scrape_pisosad,
-    "jsonld":     _scrape_jsonld,
-    "generic":    _scrape_heuristic,
+    "fotocasa":         _scrape_fotocasa,
+    "idealista":        _scrape_idealista,
+    "habitaclia":       _scrape_habitaclia,
+    "buscocasa":        _scrape_buscocasa,
+    "trovit":           _scrape_trovit,
+    "nuroa":            _scrape_nuroa,
+    "pisosad":          _scrape_pisosad,
+    "pisoscom":         _scrape_pisoscom,
+    "immobiliaria_ad":  _scrape_immobiliaria_ad,
+    "jsonld":           _scrape_jsonld,
+    "generic":          _scrape_heuristic,
 }
 
 # Per-scraper browser impersonation overrides (some sites block chrome124)
@@ -987,16 +1155,43 @@ def scrape_site(site: Dict) -> Tuple[int, int, str]:
         scraper_type = site.get("scraper_type", "generic")
         impersonate = _IMPERSONATE_MAP.get(scraper_type, "chrome124")
         proxy = _get_proxy() if scraper_type in _PROXY_SITES else None
-        html = _fetch(site["base_url"], impersonate=impersonate, proxy=proxy)
-
         sels = json.loads(site.get("selectors_json") or "{}")
+        parser = _PARSERS.get(scraper_type)
 
-        if scraper_type in _PARSERS:
-            props = _PARSERS[scraper_type](html, site)
-        elif sels:
-            props = _scrape_with_selectors(html, site)
-        else:
-            props = _scrape_heuristic(html, site)
+        def _parse(html: str) -> List[Dict]:
+            if parser:
+                return parser(html, site)
+            if sels:
+                return _scrape_with_selectors(html, site)
+            return _scrape_heuristic(html, site)
+
+        base_url = site["base_url"]
+        html = _fetch(base_url, impersonate=impersonate, proxy=proxy)
+        props = _parse(html)
+
+        # Multi-page support
+        if scraper_type in _PAGINATED_SITES and props:
+            param, style, max_pages = _PAGINATED_SITES[scraper_type]
+            sep = "&" if "?" in base_url else "?"
+            seen_urls = {p.get("url") for p in props}
+            for page in range(2, max_pages + 1):
+                try:
+                    if style == "path":
+                        page_url = base_url.rstrip("/") + f"/{page}/"
+                    else:
+                        page_url = f"{base_url}{sep}{param}={page}"
+                    page_html = _fetch(page_url, impersonate=impersonate, proxy=proxy)
+                    page_props = _parse(page_html)
+                    if not page_props:
+                        break
+                    new_on_page = [p for p in page_props if p.get("url") not in seen_urls]
+                    if not new_on_page:
+                        break
+                    props.extend(new_on_page)
+                    seen_urls.update(p.get("url") for p in new_on_page)
+                except Exception as page_exc:
+                    logger.warning("Page %d error for %s: %s", page, site["name"], page_exc)
+                    break
 
     except Exception as exc:
         error_msg = str(exc)
